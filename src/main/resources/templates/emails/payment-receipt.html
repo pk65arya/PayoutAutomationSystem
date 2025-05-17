@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Receipt</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .header {
+        background-color: #4f46e5;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-radius: 5px 5px 0 0;
+      }
+      .content {
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-top: none;
+      }
+      .footer {
+        background-color: #f3f4f6;
+        padding: 15px;
+        text-align: center;
+        font-size: 0.8em;
+        color: #666;
+        border-radius: 0 0 5px 5px;
+      }
+      .button {
+        background-color: #4f46e5;
+        color: white;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 3px;
+        margin: 10px 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #ddd;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        background-color: #f3f4f6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Payment Receipt</h1>
+    </div>
+
+    <div class="content">
+      <p>Dear <span th:text="${mentor.fullName ?: 'Mentor'}"></span>,</p>
+
+      <p>
+        Your payment has been processed successfully. Please find the attached
+        receipt for your records.
+      </p>
+
+      <div th:if="${customMessage != null && !#strings.isEmpty(customMessage)}">
+        <p><strong>Message from Admin:</strong></p>
+        <p th:text="${customMessage}"></p>
+        <hr />
+      </div>
+
+      <h2>Payment Details:</h2>
+      <ul>
+        <li>
+          <strong>Payment ID:</strong> <span th:text="${payment.id}"></span>
+        </li>
+        <li>
+          <strong>Date:</strong>
+          <span
+            th:text="${#temporals.format(payment.paymentDate, 'dd MMM yyyy')}"
+          ></span>
+        </li>
+        <li>
+          <strong>Amount:</strong> ₹<span
+            th:text="${payment.totalAmount}"
+          ></span>
+        </li>
+        <li>
+          <strong>Status:</strong> <span th:text="${payment.status}"></span>
+        </li>
+      </ul>
+
+      <h3>Sessions Included:</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Duration</th>
+            <th>Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="session : ${payment.sessions}">
+            <td
+              th:text="${#temporals.format(session.sessionDateTime, 'dd MMM yyyy')}"
+            ></td>
+            <td th:text="${session.sessionType}"></td>
+            <td
+              th:text="${session.duration} ? ${session.duration} + ' mins' : 'N/A'"
+            ></td>
+            <td th:text="${session.finalPayoutAmount}"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        If you cannot see the attached receipt, you can view it online using the
+        link below:
+      </p>
+
+      <p>
+        <a th:href="${payment.receiptUrl}" class="button"
+          >View Receipt Online</a
+        >
+      </p>
+
+      <p>Thank you for your valuable contributions as a mentor.</p>
+
+      <p>Best regards,<br />EdTech Payout System</p>
+    </div>
+
+    <div class="footer">
+      <p>This is an automated email. Please do not reply to this message.</p>
+      <p>© 2024 EdTech Payout System. All rights reserved.</p>
+    </div>
+  </body>
+</html>

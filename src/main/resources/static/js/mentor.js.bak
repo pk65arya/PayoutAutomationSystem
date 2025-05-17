@@ -1,0 +1,737 @@
+// Mentor Dashboard Component
+function MentorDashboard() {
+  const { user } = React.useContext(AuthContext);
+  const [activeTab, setActiveTab] = React.useState("sessions");
+  const [sessions, setSessions] = React.useState([]);
+  const [payments, setPayments] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+
+  // Fetch data on component mount
+  React.useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Function to fetch mentor data
+  const fetchData = async () => {
+    setLoading(true);
+    setError("");
+
+    console.log("Mentor Dashboard: Fetching data for user ID:", user?.id);
+
+    if (!user || !user.id) {
+      console.error("User ID is missing or invalid:", user);
+      setError("User information is missing. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Fetch sessions and payments in parallel
+      console.log("Sending API requests for mentor data...");
+
+      const [sessionsRes, paymentsRes] = await Promise.all([
+        axios.get(`/api/sessions/mentor/${user.id}`),
+        axios.get(`/api/payments/mentor/${user.id}`),
+      ]);
+
+      console.log(
+        "Mentor sessions received:",
+        sessionsRes.data.length,
+        "sessions"
+      );
+      console.log(
+        "Mentor payments received:",
+        paymentsRes.data.length,
+        "payments"
+      );
+
+      setSessions(sessionsRes.data);
+      setPayments(paymentsRes.data);
+
+      console.log("Mentor dashboard data loaded successfully");
+    } catch (err) {
+      console.error(
+        "Mentor dashboard fetch error:",
+        err.response?.status,
+        err.response?.data || err.message
+      );
+      setError(
+        `Failed to fetch data: ${err.response?.status || ""} ${err.message}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Mentor Dashboard</h1>
+        <p className="text-gray-600">Track your sessions and payments</p>
+      </div>
+
+      {error && (
+        <div className="mb-4 bg-red-50 p-4 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <nav className="flex border-b">
+          <button
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === "sessions"
+                ? "text-indigo-600 border-b-2 border-indigo-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("sessions")}
+          >
+            My Sessions
+          </button>
+          <button
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === "payments"
+                ? "text-indigo-600 border-b-2 border-indigo-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("payments")}
+          >
+            My Payments
+          </button>
+          <button
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === "profile"
+                ? "text-indigo-600 border-b-2 border-indigo-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("profile")}
+          >
+            My Profile
+          </button>
+          <button
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === "messages"
+                ? "text-indigo-600 border-b-2 border-indigo-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("messages")}
+          >
+            Messages
+          </button>
+        </nav>
+
+        <div className="p-4">
+          {activeTab === "sessions" && (
+            <MentorSessionsTab sessions={sessions} />
+          )}
+
+          {activeTab === "payments" && (
+            <MentorPaymentsTab payments={payments} />
+          )}
+
+          {activeTab === "profile" && <MentorProfileTab user={user} />}
+
+          {activeTab === "messages" && <MentorMessagesTab user={user} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Mentor Sessions Tab Component
+function MentorSessionsTab({ sessions }) {
+  const [selectedStatus, setSelectedStatus] = React.useState("ALL");
+
+  // Filter sessions based on selected status
+  const filteredSessions =
+    selectedStatus === "ALL"
+      ? sessions
+      : sessions.filter((session) => session.status === selectedStatus);
+
+  return (
+    <div>
+      <div className="mb-4 flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-gray-900">My Sessions</h2>
+
+        <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="block rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        >
+          <option value="ALL">All Sessions</option>
+          <option value="PENDING">Pending</option>
+          <option value="APPROVED">Approved</option>
+          <option value="PAID">Paid</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Type
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Duration
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Rate
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Date
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Amount
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredSessions.length === 0 ? (
+              <tr>
+                <td
+                  colSpan="6"
+                  className="px-6 py-4 text-center text-sm text-gray-500"
+                >
+                  No sessions found
+                </td>
+              </tr>
+            ) : (
+              filteredSessions.map((session) => (
+                <tr key={session.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {session.sessionType}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {Math.floor(session.duration.seconds / 60)} mins
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ₹{session.hourlyRate}/hr
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(session.sessionDateTime).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ₹{session.finalPayoutAmount}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            ${
+                                              session.status === "PENDING"
+                                                ? "bg-yellow-100 text-yellow-800"
+                                                : session.status === "APPROVED"
+                                                ? "bg-green-100 text-green-800"
+                                                : session.status === "PAID"
+                                                ? "bg-blue-100 text-blue-800"
+                                                : "bg-red-100 text-red-800"
+                                            }`}
+                    >
+                      {session.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// Mentor Payments Tab Component
+function MentorPaymentsTab({ payments }) {
+  return (
+    <div>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">My Payments</h2>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Payment Date
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Amount
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Transaction ID
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {payments.length === 0 ? (
+              <tr>
+                <td
+                  colSpan="5"
+                  className="px-6 py-4 text-center text-sm text-gray-500"
+                >
+                  No payments found
+                </td>
+              </tr>
+            ) : (
+              payments.map((payment) => (
+                <tr key={payment.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(payment.paymentDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ₹{payment.totalAmount}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {payment.transactionId || "N/A"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            ${
+                                              payment.status === "PENDING"
+                                                ? "bg-yellow-100 text-yellow-800"
+                                                : payment.status === "COMPLETED"
+                                                ? "bg-green-100 text-green-800"
+                                                : payment.status === "FAILED"
+                                                ? "bg-red-100 text-red-800"
+                                                : "bg-gray-100 text-gray-800"
+                                            }`}
+                    >
+                      {payment.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {payment.receiptUrl && (
+                      <a
+                        href={payment.receiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Download Receipt
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// Mentor Profile Tab Component
+function MentorProfileTab({ user }) {
+  const [formData, setFormData] = React.useState({
+    fullName: user.fullName || "",
+    email: user.email || "",
+    phoneNumber: user.phoneNumber || "",
+    bankName: user.bankName || "",
+    accountNumber: user.accountNumber || "",
+    accountHolderName: user.accountHolderName || "",
+    ifscCode: user.ifscCode || "",
+    branchName: user.branchName || "",
+    swiftCode: user.swiftCode || "",
+    accountType: user.accountType || "",
+    taxIdentificationNumber: user.taxIdentificationNumber || "",
+  });
+  const [loading, setLoading] = React.useState(false);
+  const [success, setSuccess] = React.useState("");
+  const [error, setError] = React.useState("");
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setSuccess("");
+    setError("");
+
+    try {
+      await axios.put(`/api/users/${user.id}`, formData);
+      setSuccess("Profile updated successfully!");
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to update profile. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">My Profile</h2>
+      </div>
+
+      {success && (
+        <div className="mb-4 bg-green-50 p-4 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-green-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-green-800">{success}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 bg-red-50 p-4 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label
+            htmlFor="fullName"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Full Name
+          </label>
+          <div className="mt-1">
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              required
+              value={formData.fullName}
+              onChange={handleChange}
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Email
+          </label>
+          <div className="mt-1">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="phoneNumber"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Phone Number
+          </label>
+          <div className="mt-1">
+            <input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="text"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Bank Account Details
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="accountHolderName"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Account Holder Name
+              </label>
+              <div className="mt-1">
+                <input
+                  id="accountHolderName"
+                  name="accountHolderName"
+                  type="text"
+                  value={formData.accountHolderName}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Enter account holder name"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="accountNumber"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Account Number
+              </label>
+              <div className="mt-1">
+                <input
+                  id="accountNumber"
+                  name="accountNumber"
+                  type="text"
+                  value={formData.accountNumber}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Enter account number"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="bankName"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Bank Name
+              </label>
+              <div className="mt-1">
+                <input
+                  id="bankName"
+                  name="bankName"
+                  type="text"
+                  value={formData.bankName}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Enter bank name"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="ifscCode"
+                className="block text-sm font-medium text-gray-700"
+              >
+                IFSC Code
+              </label>
+              <div className="mt-1">
+                <input
+                  id="ifscCode"
+                  name="ifscCode"
+                  type="text"
+                  value={formData.ifscCode}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Enter IFSC code"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="branchName"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Branch Name
+              </label>
+              <div className="mt-1">
+                <input
+                  id="branchName"
+                  name="branchName"
+                  type="text"
+                  value={formData.branchName}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Enter branch name"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="accountType"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Account Type
+              </label>
+              <div className="mt-1">
+                <select
+                  id="accountType"
+                  name="accountType"
+                  value={formData.accountType}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                >
+                  <option value="">Select Account Type</option>
+                  <option value="SAVINGS">Savings</option>
+                  <option value="CURRENT">Current</option>
+                  <option value="SALARY">Salary</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="swiftCode"
+                className="block text-sm font-medium text-gray-700"
+              >
+                SWIFT Code (International Transfers)
+              </label>
+              <div className="mt-1">
+                <input
+                  id="swiftCode"
+                  name="swiftCode"
+                  type="text"
+                  value={formData.swiftCode}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Optional - for international transfers"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="taxIdentificationNumber"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Tax Identification Number
+          </label>
+          <div className="mt-1">
+            <input
+              id="taxIdentificationNumber"
+              name="taxIdentificationNumber"
+              type="text"
+              value={formData.taxIdentificationNumber}
+              onChange={handleChange}
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// Mentor Messages Tab Componentfunction MentorMessagesTab({ user }) {  const [conversations, setConversations] = React.useState([]);  const [messages, setMessages] = React.useState([]);  const [activeUser, setActiveUser] = React.useState(null);  const [newMessage, setNewMessage] = React.useState("");  const [showNewMessageModal, setShowNewMessageModal] = React.useState(false);  const [loading, setLoading] = React.useState(false);  const [error, setError] = React.useState("");  const [adminUsers, setAdminUsers] = React.useState([]);  const [selectedAdmin, setSelectedAdmin] = React.useState(null);    // Fetch conversations on component mount  React.useEffect(() => {    fetchConversations();    fetchAdminUsers();  }, []);    // Fetch messages when an active user is selected  React.useEffect(() => {    if (activeUser) {      fetchMessages(activeUser.id);    }  }, [activeUser]);    // Fetch list of conversations  const fetchConversations = async () => {    setLoading(true);    try {      const response = await axios.get('/api/messages/conversations');      setConversations(response.data);      setLoading(false);    } catch (err) {      console.error("Error fetching conversations:", err);      setError("Failed to load conversations");      setLoading(false);    }  };    // Fetch admin users for new message  const fetchAdminUsers = async () => {    try {      const response = await axios.get('/api/users/admins');      setAdminUsers(response.data);    } catch (err) {      console.error("Error fetching admin users:", err);      setError("Failed to load admin users");    }  };    // Fetch messages for a specific conversation  const fetchMessages = async (userId) => {    setLoading(true);    try {      const response = await axios.get(`/api/messages/conversation/${userId}`);      setMessages(response.data);      setLoading(false);    } catch (err) {      console.error("Error fetching messages:", err);      setError("Failed to load messages");      setLoading(false);    }  };    // Send a new message  const sendMessage = async () => {    if (!newMessage.trim()) return;        try {      const recipientId = activeUser ? activeUser.id : selectedAdmin.id;            const response = await axios.post('/api/messages', {        recipient: { id: recipientId },        content: newMessage      });            // If this is a new conversation, add the recipient to conversations      if (!conversations.some(conv => conv.id === recipientId)) {        const recipientUser = activeUser || selectedAdmin;        setConversations([...conversations, recipientUser]);      }            // Update messages if in a conversation      if (activeUser) {        setMessages([...messages, response.data]);      }            // Reset state      setNewMessage("");      if (!activeUser) {        setShowNewMessageModal(false);        setActiveUser(selectedAdmin);        setSelectedAdmin(null);      }    } catch (err) {      console.error("Error sending message:", err);      setError("Failed to send message");    }  };    return (    <div>      <div className="mb-4 flex justify-between items-center">        <h2 className="text-lg font-semibold text-gray-900">Messages</h2>        <button          onClick={() => setShowNewMessageModal(true)}          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"        >          New Message        </button>      </div>            {error && (        <div className="mb-4 bg-red-50 p-4 rounded-md">          <div className="flex">            <div className="flex-shrink-0">              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />              </svg>            </div>            <div className="ml-3">              <p className="text-sm font-medium text-red-800">{error}</p>            </div>          </div>        </div>      )}            {loading ? (        <div className="flex justify-center my-8">          <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10"></div>        </div>      ) : (        <div className="bg-white shadow rounded-lg">          {conversations.length === 0 ? (            <div className="p-6 text-center text-gray-500">              <p>You have no conversations yet. Start a new message to contact an admin.</p>            </div>          ) : (            <div className="grid grid-cols-3 h-96">              {/* Conversation list */}              <div className="col-span-1 border-r overflow-y-auto">                {conversations.map(conv => (                  <div                     key={conv.id}                    onClick={() => setActiveUser(conv)}                     className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${activeUser?.id === conv.id ? 'bg-indigo-50' : ''}`}                  >                    <p className="font-medium">{conv.fullName}</p>                    <p className="text-sm text-gray-500">{conv.username}</p>                  </div>                ))}              </div>                            {/* Message area */}              <div className="col-span-2 flex flex-col h-full">                {activeUser ? (                  <>                    <div className="p-4 border-b">                      <h3 className="font-medium">{activeUser.fullName}</h3>                    </div>                                        <div className="flex-1 p-4 overflow-y-auto">                      {messages.length === 0 ? (                        <p className="text-center text-gray-500 my-8">No messages yet</p>                      ) : (                        messages.map(msg => (                          <div                             key={msg.id}                             className={`mb-4 max-w-xs p-3 rounded-lg ${msg.sender.id === user.id ? 'ml-auto bg-indigo-100' : 'bg-gray-100'}`}                          >                            <p className="text-sm">{msg.content}</p>                            <p className="text-xs text-gray-500 mt-1">                              {new Date(msg.sentAt).toLocaleString()}                            </p>                          </div>                        ))                      )}                    </div>                                        <div className="p-4 border-t">                      <div className="flex">                        <input                           type="text"                           value={newMessage}                          onChange={(e) => setNewMessage(e.target.value)}                          placeholder="Type a message..."                          className="flex-1 rounded-l-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"                          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}                        />                        <button                           onClick={sendMessage}                          className="bg-indigo-600 text-white px-4 py-2 rounded-r-md hover:bg-indigo-700"                        >                          Send                        </button>                      </div>                    </div>                  </>                ) : (                  <div className="flex items-center justify-center h-full">                    <p className="text-gray-500">Select a conversation to view messages</p>                  </div>                )}              </div>            </div>          )}        </div>      )}            {/* New Message Modal */}      {showNewMessageModal && (        <div className="fixed inset-0 z-10 overflow-y-auto">          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">            <div className="fixed inset-0 transition-opacity" aria-hidden="true">              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>            </div>                        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">                <h3 className="text-lg font-medium text-gray-900 mb-4">New Message</h3>                                <label className="block text-sm font-medium text-gray-700 mb-2">                  Select Admin                </label>                                <select                   value={selectedAdmin?.id || ""}                  onChange={(e) => {                    const adminId = parseInt(e.target.value);                    const admin = adminUsers.find(a => a.id === adminId);                    setSelectedAdmin(admin);                  }}                  className="mb-4 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"                >                  <option value="">Select an admin</option>                  {adminUsers.map(admin => (                    <option key={admin.id} value={admin.id}>                      {admin.fullName} ({admin.username})                    </option>                  ))}                </select>                                <label className="block text-sm font-medium text-gray-700 mb-2">                  Message                </label>                <textarea                  value={newMessage}                  onChange={(e) => setNewMessage(e.target.value)}                  rows="4"                  className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"                  placeholder="Type your message here..."                ></textarea>              </div>                            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">                <button                  type="button"                  disabled={!selectedAdmin || !newMessage.trim()}                  onClick={sendMessage}                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"                >                  Send Message                </button>                <button                  type="button"                  onClick={() => {                    setShowNewMessageModal(false);                    setNewMessage("");                    setSelectedAdmin(null);                  }}                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"                >                  Cancel                </button>              </div>            </div>          </div>        </div>      )}    </div>  );
+}

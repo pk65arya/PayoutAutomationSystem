@@ -1,0 +1,30 @@
+
+
+StatusCode        : 200
+StatusDescription : 
+Content           : // AuthContext for managing auth state across components
+                    const AuthContext = React.createContext();
+                    
+                    // API base URL
+                    const API_URL = window.location.origin;
+                    
+                    // Set up axios defaults
+                    axios.defa...
+RawContent        : HTTP/1.1 200 
+                    Vary: Origin,Access-Control-Request-Method,Access-Control-Request-Headers
+                    X-Content-Type-Options: nosniff
+                    X-XSS-Protection: 0
+                    Pragma: no-cache
+                    X-Frame-Options: DENY
+                    Accept-Ranges: ...
+Forms             : 
+Headers           : {[Vary, Origin,Access-Control-Request-Method,Access-Control-Request-Headers], 
+                    [X-Content-Type-Options, nosniff], [X-XSS-Protection, 0], [Pragma, no-cache]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : 
+RawContentLength  : 9902
+
+
+

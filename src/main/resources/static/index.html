@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payout Automation System</title>
+
+    <!-- Ensure Chart.js is loaded before anything else -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+      // Verify Chart.js loaded and create a global reference
+      window.ChartLoaded = typeof Chart === "function";
+      console.log(
+        "Chart.js preload status:",
+        window.ChartLoaded ? "✓ Loaded" : "✗ Failed"
+      );
+
+      // Create a global reference that components can check
+      if (window.ChartLoaded) {
+        window.ChartInstance = Chart;
+      }
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom styles -->
+    <style>
+      .loader {
+        border-top-color: #3498db;
+        -webkit-animation: spinner 1.5s linear infinite;
+        animation: spinner 1.5s linear infinite;
+      }
+
+      @-webkit-keyframes spinner {
+        0% {
+          -webkit-transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transform: rotate(360deg);
+        }
+      }
+
+      @keyframes spinner {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 min-h-screen">
+    <div id="root"></div>
+
+    <!-- Load fallback if Chart.js failed to load in head -->
+    <script>
+      if (!window.ChartLoaded) {
+        console.error(
+          "❌ Chart.js failed to load correctly in head, trying again"
+        );
+        // Try loading Chart.js again
+        const chartScript = document.createElement("script");
+        chartScript.src =
+          "https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js";
+        chartScript.onload = function () {
+          window.ChartLoaded = typeof Chart === "function";
+          window.ChartInstance = Chart;
+          console.log(
+            "Chart.js retry load:",
+            window.ChartLoaded ? "✓ Success" : "✗ Failed"
+          );
+        };
+        chartScript.onerror = function () {
+          console.error("Chart.js failed to load even after retry");
+          // Load fallback implementation
+          const fallbackScript = document.createElement("script");
+          fallbackScript.src = "/js/ReportsChartFallback.js";
+          document.body.appendChild(fallbackScript);
+        };
+        document.body.appendChild(chartScript);
+      }
+    </script>
+
+    <!-- React CDN -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+
+    <!-- Babel for JSX support -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Axios for API calls -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!-- Add Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <!-- App scripts -->
+    <script type="text/babel" src="/js/auth.js"></script>
+    <script type="text/babel" src="/js/admin.js"></script>
+    <script type="text/babel" src="/js/mentor.js"></script>
+    <script type="text/babel" src="/js/app.js"></script>
+
+    <script>
+      // Force script reload by clearing cache
+      function clearCache() {
+        console.log("Clearing browser cache for scripts...");
+        localStorage.removeItem("cache-timestamp");
+        const timestamp = new Date().getTime();
+        localStorage.setItem("cache-timestamp", timestamp);
+        console.log("Cache timestamp updated to:", timestamp);
+        return timestamp;
+      }
+
+      // Get timestamp for cache busting
+      const cacheTimestamp = clearCache();
+
+      // Verify libraries are loaded
+      window.addEventListener("load", function () {
+        console.log("Window fully loaded");
+        console.log(
+          "Chart exists globally:",
+          typeof window.Chart === "function"
+        );
+        console.log(
+          "ChartInstance exists:",
+          typeof window.ChartInstance === "function"
+        );
+        console.log("ChartLoaded flag:", window.ChartLoaded);
+      });
+    </script>
+  </body>
+</html>

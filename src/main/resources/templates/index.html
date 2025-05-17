@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EdTech Payout System</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/img/favicon.svg" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React CDN -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+
+    <!-- Babel for JSX support -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Axios for API calls -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!-- Custom styles -->
+    <style>
+      .loader {
+        border-top-color: #3498db;
+        -webkit-animation: spinner 1.5s linear infinite;
+        animation: spinner 1.5s linear infinite;
+      }
+
+      @-webkit-keyframes spinner {
+        0% {
+          -webkit-transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transform: rotate(360deg);
+        }
+      }
+
+      @keyframes spinner {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+
+    <!-- Add Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+      // Check if Stripe is loaded
+      window.addEventListener("DOMContentLoaded", function () {
+        if (typeof Stripe === "function") {
+          console.log("✅ Stripe.js loaded successfully");
+        } else {
+          console.error("❌ Stripe.js failed to load");
+        }
+      });
+    </script>
+  </head>
+  <body class="bg-gray-100 min-h-screen">
+    <div id="root"></div>
+
+    <!-- App scripts -->
+    <script type="text/babel" src="/js/app.js"></script>
+    <script type="text/babel" src="/js/auth.js"></script>
+    <script type="text/babel" src="/js/admin.js"></script>
+    <script type="text/babel" src="/js/mentor.js"></script>
+  </body>
+</html>

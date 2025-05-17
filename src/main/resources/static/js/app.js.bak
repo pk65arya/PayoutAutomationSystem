@@ -1,0 +1,305 @@
+// AuthContext for managing auth state across components
+const AuthContext = React.createContext();
+
+// API base URL
+const API_URL = window.location.origin;
+
+// Set up axios defaults
+axios.defaults.baseURL = API_URL;
+
+// Axios interceptor for handling auth token
+axios.interceptors.request.use(
+  (config) => {
+    // Check if we have a token
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Add the authorization header
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    // Always set content type to JSON for POST requests
+    if (config.method === "post" || config.method === "put") {
+      config.headers["Content-Type"] = "application/json";
+    }
+
+    console.log("Axios request:", config.method, config.url);
+    return config;
+  },
+  (error) => {
+    console.error("Axios request error:", error);
+    return Promise.reject(error);
+  }
+);
+
+// Store for tracking if a refresh is already in progress
+const refreshTokenPromise = {
+  promise: null,
+  lastRefreshTime: 0, // Track when we last refreshed
+  lastRefreshSuccess: null, // Track if the last refresh was successful
+};
+
+// Function to refresh auth state
+const refreshAuthState = async () => {
+  const now = Date.now();
+
+  // If the last refresh was successful, enforce the 30-second cooldown
+  if (
+    refreshTokenPromise.lastRefreshSuccess &&
+    now - refreshTokenPromise.lastRefreshTime < 30000
+  ) {
+    console.log("Skipping refresh - too soon since last successful attempt");
+    return true; // Return true since we know the last refresh was successful
+  }
+
+  // If the last refresh failed, only enforce a 5-second cooldown
+  if (
+    !refreshTokenPromise.lastRefreshSuccess &&
+    now - refreshTokenPromise.lastRefreshTime < 5000
+  ) {
+    console.log("Skipping refresh - too soon since last failed attempt");
+    return false;
+  }
+
+  // Only allow one refresh at a time
+  if (!refreshTokenPromise.promise) {
+    console.log("Attempting to refresh authentication state");
+    refreshTokenPromise.lastRefreshTime = now;
+
+    refreshTokenPromise.promise = axios
+      .get("/api/auth/verify")
+      .then((response) => {
+        console.log("Authentication refreshed successfully");
+        refreshTokenPromise.lastRefreshSuccess = true;
+        return true;
+      })
+      .catch((error) => {
+        console.error("Failed to refresh authentication:", error);
+        refreshTokenPromise.lastRefreshSuccess = false;
+        // Clear auth on failure
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        return false;
+      })
+      .finally(() => {
+        refreshTokenPromise.promise = null;
+      });
+  }
+
+  return refreshTokenPromise.promise;
+};
+
+// Axios interceptor for handling errors
+axios.interceptors.response.use(
+  (response) => {
+    // Log success responses
+    console.log("Axios response:", response.status, response.config.url);
+    return response;
+  },
+  (error) => {
+    // Log error responses
+    console.error(
+      "Axios response error:",
+      error.response ? error.response.status : "No response",
+      error.config ? error.config.url : "Unknown URL"
+    );
+
+    // If it's an authentication error, we could handle it globally here
+    if (error.response && error.response.status === 401) {
+      console.error("Authentication error - you might need to log in again");
+      // You could redirect to login or show a message
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// Main App component
+function App() {
+  const [user, setUser] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [authError, setAuthError] = React.useState(null);
+
+  // Check if user is logged in on component mount
+  React.useEffect(() => {
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+
+    console.log("Checking authentication status:");
+    console.log("- Token exists:", !!token);
+    console.log("- Saved user exists:", !!savedUser);
+
+    if (token && savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        console.log("User authenticated:", userData.username);
+        console.log("User roles:", userData.roles);
+        setUser(userData);
+
+        // Verify the token is still valid with the server
+        verifyToken(token);
+      } catch (error) {
+        console.error("Error parsing user from localStorage", error);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        setAuthError("Invalid user data format. Please log in again.");
+      }
+    } else {
+      console.log("No authentication found, user must log in");
+      // Clear any partial auth data
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("auth_timestamp");
+      setUser(null);
+    }
+
+    setLoading(false);
+  }, []);
+
+  // Function to verify token with the server
+  const verifyToken = async (token) => {
+    try {
+      // Make a simple request to verify the token
+      const response = await axios.get("/api/auth/verify");
+      console.log("Token verified successfully");
+
+      // Update user data if the server returned updated information
+      if (response.data && response.data.userId) {
+        const userData = {
+          id: response.data.userId,
+          username: response.data.username,
+          roles: response.data.roles,
+          ...JSON.parse(localStorage.getItem("user")),
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      // Only clear auth if it's truly an auth error
+      if (error.response && error.response.status === 401) {
+        logout();
+        setAuthError("Your session has expired. Please log in again.");
+      }
+    }
+  };
+
+  // Login function
+  const login = (token, userData) => {
+    console.log("Login function called with user:", userData.username);
+
+    // Make sure the token doesn't already have "Bearer " prefix
+    const tokenToStore = token.startsWith("Bearer ")
+      ? token.substring(7)
+      : token;
+
+    // Store token without the Bearer prefix
+    localStorage.setItem("token", tokenToStore);
+    localStorage.setItem("user", JSON.stringify(userData));
+    // Set session timestamp to track token age
+    localStorage.setItem("auth_timestamp", Date.now().toString());
+    setUser(userData);
+    setAuthError(null);
+
+    // Force immediate verification to ensure token is valid
+    setTimeout(() => {
+      verifyToken(tokenToStore);
+    }, 100);
+  };
+
+  // Logout function
+  const logout = () => {
+    console.log("Logout function called");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("auth_timestamp");
+    setUser(null);
+  };
+
+  // Auth provider value
+  const authContextValue = {
+    user,
+    login,
+    logout,
+    isAuthenticated: !!user,
+    isAdmin: user?.roles?.some((role) =>
+      typeof role === "string"
+        ? role === "ROLE_ADMIN" || role === "ADMIN"
+        : role?.name === "ROLE_ADMIN" || role?.name === "ADMIN"
+    ),
+    isMentor: user?.roles?.some((role) =>
+      typeof role === "string"
+        ? role === "ROLE_MENTOR" || role === "MENTOR"
+        : role?.name === "ROLE_MENTOR" || role?.name === "MENTOR"
+    ),
+    authError,
+    refreshAuth: refreshAuthState,
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16"></div>
+      </div>
+    );
+  }
+
+  return (
+    <AuthContext.Provider value={authContextValue}>
+      {authError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded fixed top-0 left-0 right-0 m-4 z-50">
+          <span className="font-bold">Authentication Error:</span> {authError}.
+          <button
+            className="ml-2 underline"
+            onClick={() => (window.location.href = "/")}
+          >
+            Go to login
+          </button>
+        </div>
+      )}
+      {user ? <Dashboard /> : <Auth />}
+    </AuthContext.Provider>
+  );
+}
+
+// Dashboard component that shows admin or mentor dashboard based on role
+function Dashboard() {
+  const { user, logout, isAdmin, refreshAuth } = React.useContext(AuthContext);
+
+  // Periodically refresh auth in the background
+  React.useEffect(() => {
+    // Try to refresh auth every 10 minutes
+    const refreshInterval = setInterval(() => {
+      refreshAuth();
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(refreshInterval);
+  }, [refreshAuth]);
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-indigo-600 px-4 py-3 text-white">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-xl font-bold">Payout Automation System</h1>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm">Welcome, {user.fullName}</span>
+            <button
+              onClick={logout}
+              className="bg-indigo-700 hover:bg-indigo-800 px-3 py-1 rounded text-sm"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="container mx-auto p-4">
+        {isAdmin ? <AdminDashboard /> : <MentorDashboard />}
+      </div>
+    </div>
+  );
+}
+
+// Render the App component
+ReactDOM.render(<App />, document.getElementById("root"));
