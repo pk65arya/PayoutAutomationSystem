@@ -1,4 +1,4 @@
-// Mentor Dashboard Component
+
 function MentorDashboard() {
   const { user } = React.useContext(AuthContext);
   const [activeTab, setActiveTab] = React.useState("sessions");
@@ -7,12 +7,10 @@ function MentorDashboard() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
-  // Fetch data on component mount
   React.useEffect(() => {
     fetchData();
   }, []);
 
-  // Function to fetch mentor data
   const fetchData = async () => {
     setLoading(true);
     setError("");
@@ -27,7 +25,6 @@ function MentorDashboard() {
     }
 
     try {
-      // Fetch sessions and payments in parallel
       console.log("Sending API requests for mentor data...");
 
       const [sessionsRes, paymentsRes] = await Promise.all([
@@ -276,22 +273,18 @@ function MentorDashboard() {
   );
 }
 
-// Mentor Sessions Tab Component
 function MentorSessionsTab({ sessions }) {
   const [selectedStatus, setSelectedStatus] = React.useState("ALL");
 
-  // Filter sessions based on selected status
   const filteredSessions =
     selectedStatus === "ALL"
       ? sessions
       : sessions.filter((session) => session.status === selectedStatus);
 
-  // Helper function to format duration from different possible formats
   const formatDuration = (duration) => {
     if (typeof duration === "object" && duration.seconds) {
       return Math.floor(duration.seconds / 60) + " mins";
     } else if (typeof duration === "string" && duration.startsWith("PT")) {
-      // Handle PT format (ISO duration)
       return duration.replace(/PT(\d+)M.*/, "$1") + " mins";
     } else if (typeof duration === "number") {
       return duration + " mins";
@@ -415,20 +408,17 @@ function MentorSessionsTab({ sessions }) {
   );
 }
 
-// Mentor Payments Tab Component
 function MentorPaymentsTab({ payments }) {
   const [showReceiptModal, setShowReceiptModal] = React.useState(false);
   const [activePayment, setActivePayment] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
-  // Function to view receipt
   const handleViewReceipt = async (payment) => {
     try {
       setLoading(true);
       setError("");
 
-      // Get fresh token to ensure we're using the most up-to-date one
       const token = localStorage.getItem("token");
       if (!token) {
         setError("Authentication token is missing. Please login again.");
@@ -436,10 +426,8 @@ function MentorPaymentsTab({ payments }) {
         return;
       }
 
-      // Get payment details if needed
       let paymentDetails = payment;
       if (!payment.sessions) {
-        // Fetch payment details with sessions if not already included
         try {
           const response = await axios.get(`/api/payments/${payment.id}`, {
             headers: {
@@ -450,7 +438,6 @@ function MentorPaymentsTab({ payments }) {
         } catch (err) {
           console.error("Error fetching payment details:", err);
 
-          // Handle authentication errors
           if (err.response && err.response.status === 401) {
             setError("Authentication failed. Please log in again.");
             setLoading(false);
@@ -461,7 +448,7 @@ function MentorPaymentsTab({ payments }) {
         }
       }
 
-      // Calculate tax breakdowns if not provided
+    
       if (!paymentDetails.gstAmount) {
         paymentDetails = {
           ...paymentDetails,
@@ -477,9 +464,9 @@ function MentorPaymentsTab({ payments }) {
         };
       }
 
-      // Set active payment for the receipt
+     
       setActivePayment(paymentDetails);
-      // Open the receipt modal
+     
       setShowReceiptModal(true);
     } catch (err) {
       console.error("Error viewing receipt:", err);
@@ -810,7 +797,7 @@ function MentorPaymentsTab({ payments }) {
   );
 }
 
-// Mentor Profile Tab Component
+
 function MentorProfileTab({ user }) {
   const [formData, setFormData] = React.useState({
     fullName: user.fullName || "",
@@ -843,10 +830,10 @@ function MentorProfileTab({ user }) {
     setError("");
 
     try {
-      // Get the authentication token from localStorage
+      
       const token = localStorage.getItem("token");
 
-      // Add explicit authorization header with Bearer token
+     
       await axios.put(`/api/users/${user.id}`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -863,7 +850,7 @@ function MentorProfileTab({ user }) {
           "Failed to update profile. Please try again."
       );
 
-      // If it's an authentication error, provide more helpful message
+    
       if (err.response && err.response.status === 401) {
         setError(
           "Authentication error. Please log out and log in again to update your profile."
@@ -1170,7 +1157,7 @@ function MentorProfileTab({ user }) {
   );
 }
 
-// Mentor Messages Tab Component - Identical to Admin's implementation
+
 function MentorMessagesTab({ user }) {
   const [conversations, setConversations] = React.useState([]);
   const [messages, setMessages] = React.useState([]);
@@ -1183,19 +1170,19 @@ function MentorMessagesTab({ user }) {
   const [selectedAdminId, setSelectedAdminId] = React.useState("");
   const [modalMounted, setModalMounted] = React.useState(false);
 
-  // Ref for the modal element
+  
   const modalRef = React.useRef(null);
 
-  // Add state for tracking scroll position
+
   const [showScrollBottom, setShowScrollBottom] = React.useState(false);
   const messagesEndRef = React.useRef(null);
 
-  // Add scroll event handler to the messages container
+
   React.useEffect(() => {
     const handleScroll = () => {
       const container = document.querySelector(".messages-container");
       if (container) {
-        // Show button if user scrolled up more than 100px from bottom
+      
         const isScrolledUp =
           container.scrollHeight -
             container.clientHeight -
@@ -1212,7 +1199,7 @@ function MentorMessagesTab({ user }) {
     }
   }, [messages, activeUser]);
 
-  // Helper function to get authenticated axios instance
+
   const getAuthenticatedAxios = () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -1256,12 +1243,12 @@ function MentorMessagesTab({ user }) {
     };
   };
 
-  // Fetch conversations on component mount
+
   React.useEffect(() => {
     console.log("MentorMessagesTab mounted, fetching conversations");
     fetchConversations();
 
-    // Setup periodic refresh of conversations
+    
     const intervalId = setInterval(() => {
       console.log("Refreshing conversations...");
       fetchConversations(false);
@@ -1270,18 +1257,18 @@ function MentorMessagesTab({ user }) {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Log when conversations change
+
   React.useEffect(() => {
     console.log("Conversations updated:", conversations);
 
-    // Auto-select the first conversation if none is active
+   
     if (conversations.length > 0 && !activeUser) {
       console.log("Auto-selecting first conversation");
       setActiveUser(conversations[0]);
     }
   }, [conversations]);
 
-  // Fetch messages when an active user is selected
+ 
   React.useEffect(() => {
     if (activeUser) {
       console.log(
@@ -1292,14 +1279,12 @@ function MentorMessagesTab({ user }) {
     }
   }, [activeUser]);
 
-  // Handle modal visibility with event listeners
   React.useEffect(() => {
     if (showAdminModal && !modalMounted) {
       console.log("Modal opened, adding event listeners");
       document.body.style.overflow = "hidden"; // Prevent background scrolling
       setModalMounted(true);
 
-      // Add click outside handler
       const handleClickOutside = (event) => {
         if (modalRef.current && !modalRef.current.contains(event.target)) {
           console.log("Click outside modal detected");
@@ -1307,7 +1292,6 @@ function MentorMessagesTab({ user }) {
         }
       };
 
-      // Add escape key handler
       const handleEscKey = (event) => {
         if (event.key === "Escape") {
           console.log("Escape key detected");
@@ -1328,7 +1312,6 @@ function MentorMessagesTab({ user }) {
     }
   }, [showAdminModal, modalMounted]);
 
-  // Fetch conversations
   const fetchConversations = async (showLoadingState = true) => {
     if (showLoadingState) {
       setLoading(true);
@@ -1344,7 +1327,6 @@ function MentorMessagesTab({ user }) {
       if (response.data && Array.isArray(response.data)) {
         setConversations(response.data);
 
-        // If there are conversations but no active user, set the first one as active
         if (response.data.length > 0 && !activeUser) {
           console.log(
             "Setting first conversation as active:",
@@ -1373,7 +1355,6 @@ function MentorMessagesTab({ user }) {
     }
   };
 
-  // Fetch admin users for potential conversations
   const fetchAdminUsers = async () => {
     try {
       console.log("Fetching admin users...");
@@ -1394,7 +1375,6 @@ function MentorMessagesTab({ user }) {
 
       console.log(`Found ${data.length} admin users`);
 
-      // Log each admin for debugging
       data.forEach((admin, index) => {
         console.log(`Admin ${index + 1}: ${admin.username}, ID: ${admin.id}`);
       });
@@ -1408,19 +1388,15 @@ function MentorMessagesTab({ user }) {
     }
   };
 
-  // Start a new conversation - show modal to select admin
   const startNewConversation = async () => {
     console.log("Starting new conversation - opening modal");
     setError(""); // Clear any previous errors
 
     try {
-      // Show loading state
       setLoading(true);
 
-      // Clear any existing admins in state before fetching
       setAvailableAdmins([]);
 
-      // Reset selected admin
       setSelectedAdminId("");
 
       console.log("Fetching admin users...");
@@ -1433,10 +1409,8 @@ function MentorMessagesTab({ user }) {
           "admins"
         );
 
-        // Show the modal
         setShowAdminModal(true);
 
-        // Focus on the select element after modal appears
         setTimeout(() => {
           if (modalRef.current) {
             const selectElement = modalRef.current.querySelector("select");
@@ -1459,7 +1433,6 @@ function MentorMessagesTab({ user }) {
     }
   };
 
-  // Handle admin selection from modal
   const handleSelectAdmin = () => {
     console.log("Admin selected button clicked");
 
@@ -1472,11 +1445,9 @@ function MentorMessagesTab({ user }) {
     try {
       console.log("Processing admin selection, ID:", selectedAdminId);
 
-      // Convert to number to ensure proper comparison
       const adminId = parseInt(selectedAdminId);
       console.log("Parsed admin ID:", adminId);
 
-      // Find the selected admin in the available admins list
       const selectedAdmin = availableAdmins.find(
         (admin) => admin.id === adminId
       );
@@ -1490,12 +1461,9 @@ function MentorMessagesTab({ user }) {
 
       console.log("Selected admin found:", selectedAdmin);
 
-      // First close the modal
       setShowAdminModal(false);
 
-      // Add to conversations if not already present
       setConversations((prevConversations) => {
-        // Check if admin already exists in conversations
         if (!prevConversations.some((c) => c.id === selectedAdmin.id)) {
           console.log("Adding admin to conversations list");
           return [...prevConversations, selectedAdmin];
@@ -1503,7 +1471,6 @@ function MentorMessagesTab({ user }) {
         return prevConversations;
       });
 
-      // Set as active user with a slight delay to ensure state updates properly
       setTimeout(() => {
         console.log("Setting active user:", selectedAdmin);
         setActiveUser(selectedAdmin);
@@ -1515,26 +1482,22 @@ function MentorMessagesTab({ user }) {
     }
   };
 
-  // Close the modal
   const closeModal = () => {
     console.log("Closing admin selection modal");
     setShowAdminModal(false);
     setSelectedAdminId("");
   };
 
-  // Add this helper function at the top of the MentorMessagesTab component
   const scrollToBottom = () => {
     setTimeout(() => {
       const messagesContainer = document.querySelector(".messages-container");
       if (messagesContainer) {
         try {
-          // First try scrolling to the bottom with modern method
           messagesContainer.scrollTo({
             top: messagesContainer.scrollHeight,
             behavior: "smooth",
           });
 
-          // Fallback to older method for wider compatibility
           setTimeout(() => {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             console.log(
@@ -1543,25 +1506,21 @@ function MentorMessagesTab({ user }) {
             );
           }, 50);
         } catch (e) {
-          // Fallback for any errors
           console.error("Error scrolling:", e);
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
       }
-    }, 150); // Slight delay to ensure DOM is updated
+    }, 150); 
   };
 
-  // Update fetchMessages to use scrollToBottom
   const fetchMessages = async (userId) => {
     setLoading(true);
     try {
       console.log(`Fetching messages for conversation with user ID: ${userId}`);
 
-      // Clear any existing error
       setError("");
 
       const authAxios = getAuthenticatedAxios();
-      // Make API call
       const response = await authAxios.get(
         `/api/messages/conversation/${userId}`
       );
@@ -1569,7 +1528,6 @@ function MentorMessagesTab({ user }) {
       console.log("Total messages count:", response.data?.length || 0);
 
       if (response.data && Array.isArray(response.data)) {
-        // Log each message for debugging
         response.data.forEach((msg, index) => {
           console.log(
             `Message ${index + 1} - ID: ${msg.id}, From: ${
@@ -1581,10 +1539,8 @@ function MentorMessagesTab({ user }) {
           );
         });
 
-        // Set all messages without filtering
         setMessages(response.data);
 
-        // Scroll to bottom after messages are loaded
         scrollToBottom();
       } else {
         console.error("Invalid message format received:", response.data);
@@ -1601,9 +1557,7 @@ function MentorMessagesTab({ user }) {
     }
   };
 
-  // Update sendMessage function to use scrollToBottom
   const sendMessage = async () => {
-    // Validate input
     if (!newMessage.trim()) {
       console.warn("Empty message, not sending");
       return;
@@ -1615,7 +1569,6 @@ function MentorMessagesTab({ user }) {
       return;
     }
 
-    // Show loading state
     setLoading(true);
 
     try {
@@ -1625,7 +1578,6 @@ function MentorMessagesTab({ user }) {
       );
       console.log("- Content: " + newMessage);
 
-      // Build request body
       const requestBody = {
         recipient: {
           id: Number(activeUser.id),
@@ -1637,17 +1589,14 @@ function MentorMessagesTab({ user }) {
       console.log("Request payload:", JSON.stringify(requestBody));
 
       const authAxios = getAuthenticatedAxios();
-      // Make API call
       const response = await authAxios.post("/api/messages", requestBody);
 
       const data = response.data;
       console.log("Message sent successfully:", data);
 
-      // Update UI
       setMessages((prev) => [...prev, data]);
       setNewMessage("");
 
-      // Scroll to bottom after sending a message
       scrollToBottom();
     } catch (error) {
       console.error("Failed to send message:", error);
