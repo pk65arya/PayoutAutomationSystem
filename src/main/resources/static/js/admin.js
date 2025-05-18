@@ -1,4 +1,4 @@
-// StripePaymentModal Component
+
 function StripePaymentModal({
   clientSecret,
   paymentId,
@@ -11,7 +11,7 @@ function StripePaymentModal({
   const [paymentComplete, setPaymentComplete] = React.useState(false);
 
   React.useEffect(() => {
-    // Initialize Stripe when the component mounts
+   
     const initStripe = async () => {
       if (!window.Stripe) {
         console.error("Stripe.js not loaded");
@@ -20,14 +20,14 @@ function StripePaymentModal({
       }
 
       try {
-        const stripe = window.Stripe("pk_test_sample_key"); // Replace with your publishable key
+        const stripe = window.Stripe("pk_test_sample_key"); 
         const elements = stripe.elements();
 
-        // Create card element
+     
         const cardElement = elements.create("card");
         cardElement.mount("#card-element");
 
-        // Handle form submission
+       
         const form = document.getElementById("payment-form");
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
@@ -48,11 +48,11 @@ function StripePaymentModal({
               throw new Error(error.message);
             }
 
-            // Payment successful
+            
             console.log("Payment successful:", paymentIntent);
             setPaymentComplete(true);
 
-            // Call the success callback with the payment info
+           
             if (onSuccess) {
               onSuccess(paymentId, paymentIntent.id);
             }
@@ -180,7 +180,7 @@ function StripePaymentModal({
   );
 }
 
-// Admin Dashboard Component
+
 function AdminDashboard() {
   const { user, logout, refreshAuth } = React.useContext(AuthContext);
   const [activeTab, setActiveTab] = React.useState("sessions");
@@ -195,37 +195,37 @@ function AdminDashboard() {
   const [conversations, setConversations] = React.useState([]);
   const [messages, setMessages] = React.useState([]);
 
-  // Add state for Stripe payment modal
+  
   const [stripeModalOpen, setStripeModalOpen] = React.useState(false);
   const [stripePaymentData, setStripePaymentData] = React.useState(null);
 
-  // Add state for local sessions that doesn't depend on parent component
+ 
   const [localSessions, setLocalSessions] = React.useState([]);
 
-  // Set up initial state from prop if provided
+ 
   React.useEffect(() => {
     if (paymentModalConfig) {
       handleCreatePaymentForMentor(
         paymentModalConfig.mentorId,
         paymentModalConfig.sessionIds
       );
-      // Clear the config after using it
+     
       setPaymentModalConfig(null);
     }
 
-    // Initialize localSessions with the sessions prop
+    
     setLocalSessions(sessions);
   }, [paymentModalConfig, sessions]);
 
-  // Set up global functions for session payment processing
+
   React.useEffect(() => {
-    // This function will switch to payment tab and set configuration
+   
     window.createPaymentForSession = (mentorId, sessionIds) => {
       setActiveTab("payments");
       setPaymentModalConfig({ mentorId, sessionIds });
     };
 
-    // Make handleCreatePaymentForMentor globally available
+ 
     window.handleCreatePaymentForMentor = (mentorId, sessionIds) => {
       setActiveTab("payments");
       setPaymentModalConfig({ mentorId, sessionIds });
@@ -237,9 +237,9 @@ function AdminDashboard() {
     };
   }, []);
 
-  // Fetch data on component mount
+ 
   React.useEffect(() => {
-    // Verify that we have a valid user before fetching data
+   
     if (!user || !user.id) {
       console.error("AdminDashboard: No valid user found:", user);
       setError("Authentication error. Please log in again.");
@@ -252,26 +252,25 @@ function AdminDashboard() {
 
     fetchData();
 
-    // Set up a timer to refresh data every 5 minutes
+   
     const refreshInterval = setInterval(fetchData, 5 * 60 * 1000);
 
-    // Clear interval on component unmount
+  
     return () => clearInterval(refreshInterval);
   }, [user]);
 
-  // Function to handle authentication errors in API calls
+
   const handleApiError = async (err) => {
     console.error("API error:", err);
 
-    // If it's an authentication error, try to refresh first
-    if (
+  
       err.message === "Authentication error" ||
       (err.response && err.response.status === 401)
     ) {
       console.log("Attempting to refresh authentication before giving up");
 
       try {
-        // Try to refresh authentication
+       
         const refreshSuccessful = await refreshAuth();
 
         if (refreshSuccessful) {
@@ -284,10 +283,10 @@ function AdminDashboard() {
         console.error("Failed to refresh authentication:", refreshError);
       }
 
-      // If we got here, refresh failed or wasn't available
+     
       setError("Your session has expired. Please log in again.");
 
-      // Show login button or redirect after a delay
+      
       setTimeout(() => {
         if (
           confirm("Your session has expired. Would you like to log in again?")
@@ -303,7 +302,7 @@ function AdminDashboard() {
     return { handled: false, refreshed: false };
   };
 
-  // Function to fetch all necessary data for admin
+ 
   const fetchData = async () => {
     setLoading(true);
     setError("");
@@ -311,7 +310,7 @@ function AdminDashboard() {
     console.log("Admin Dashboard: Fetching data");
 
     try {
-      // Fetch sessions, mentors, and payments in parallel
+    
       console.log("Sending API requests...");
 
       const [sessionsRes, usersRes, paymentsRes] = await Promise.all([
@@ -320,12 +319,12 @@ function AdminDashboard() {
         axios.get("/api/payments"),
       ]);
 
-      // Log raw response structures for debugging
+      
       console.log("Raw users response structure:", usersRes.data);
       console.log("Raw sessions response structure:", sessionsRes.data);
       console.log("Raw payments response structure:", paymentsRes.data);
 
-      // Handle paginated responses with more robust error checking
+   
       let sessionsData = [];
       if (sessionsRes.data && typeof sessionsRes.data === "object") {
         sessionsData = sessionsRes.data.sessions || sessionsRes.data;
@@ -336,18 +335,17 @@ function AdminDashboard() {
       }
       console.log("Sessions data processed:", sessionsData.length, "sessions");
 
-      // Extract users with safer approach
       let usersData = [];
       if (usersRes.data && typeof usersRes.data === "object") {
         // Check if we have a paginated response with users field
         if (usersRes.data.users && Array.isArray(usersRes.data.users)) {
           usersData = usersRes.data.users;
         }
-        // Check if the data itself is an array (old format)
+       
         else if (Array.isArray(usersRes.data)) {
           usersData = usersRes.data;
         }
-        // If neither condition is met, log the issue
+        
         else {
           console.warn(
             "Could not extract users array from response",
@@ -357,7 +355,7 @@ function AdminDashboard() {
       }
       console.log("Users data processed:", usersData.length, "users");
 
-      // Extract payments the same way
+      
       let paymentsData = [];
       if (paymentsRes.data && typeof paymentsRes.data === "object") {
         paymentsData = paymentsRes.data.payments || paymentsRes.data;
@@ -368,7 +366,7 @@ function AdminDashboard() {
       }
       console.log("Payments data processed:", paymentsData.length, "payments");
 
-      // SAFELY log the user roles - only if usersData is an array
+      
       if (Array.isArray(usersData)) {
         const rolesSummary = usersData.map((user) => ({
           username: user.username,
@@ -381,11 +379,11 @@ function AdminDashboard() {
 
       setSessions(sessionsData);
 
-      // Improved mentor filtering with better error handling
+     
       let mentorsList = [];
       if (Array.isArray(usersData)) {
         mentorsList = usersData.filter((user) => {
-          // Check if roles property exists and is an array
+         
           if (!user.roles || !Array.isArray(user.roles)) {
             console.warn(
               `User ${user.id} has invalid roles format:`,
@@ -394,13 +392,13 @@ function AdminDashboard() {
             return false;
           }
 
-          // Handle different role formats: might be array of strings or array of objects
+         
           const isMentor = user.roles.some((role) => {
             if (typeof role === "string") {
-              // Check both formats
+             
               return role === "ROLE_MENTOR" || role === "MENTOR";
             } else if (typeof role === "object" && role !== null) {
-              // Check both formats
+             
               return role.name === "ROLE_MENTOR" || role.name === "MENTOR";
             }
             return false;
@@ -416,17 +414,17 @@ function AdminDashboard() {
 
       console.log("Admin dashboard data loaded successfully");
     } catch (err) {
-      // Check if it's an authentication error
+    
       const { handled, refreshed } = await handleApiError(err);
 
       if (refreshed) {
-        // If we refreshed auth successfully, try fetching data again
+       
         fetchData();
         return;
       }
 
       if (!handled) {
-        // Only set regular error message if it's not an auth error
+      
         console.error(
           "Admin dashboard fetch error:",
           err.response?.status,
@@ -441,16 +439,16 @@ function AdminDashboard() {
     }
   };
 
-  // Refresh data function that can be called after operations
+
   const refreshData = async () => {
     try {
-      // Don't show loading state for background refreshes
+    
       const [sessionsRes, paymentsRes] = await Promise.all([
         axios.get("/api/sessions"),
         axios.get("/api/payments"),
       ]);
 
-      // Process sessions with better error handling
+    
       let sessionsData = [];
       if (sessionsRes.data && typeof sessionsRes.data === "object") {
         sessionsData = sessionsRes.data.sessions || sessionsRes.data;
@@ -460,7 +458,7 @@ function AdminDashboard() {
         }
       }
 
-      // Process payments with better error handling
+   
       let paymentsData = [];
       if (paymentsRes.data && typeof paymentsRes.data === "object") {
         paymentsData = paymentsRes.data.payments || paymentsRes.data;
@@ -486,7 +484,7 @@ function AdminDashboard() {
     }
   };
 
-  // Function to handle session status update
+
   const handleSessionStatusUpdate = async (sessionId, newStatus) => {
     try {
       console.log(`Updating session ${sessionId} to status: ${newStatus}`);
@@ -497,16 +495,16 @@ function AdminDashboard() {
       );
       console.log("Session status updated successfully:", response.data);
 
-      // Refresh sessions data without page reload
+      
       await refreshData();
 
-      // Success notification
+     
       setError("");
     } catch (err) {
       const { handled, refreshed } = await handleApiError(err);
 
       if (refreshed) {
-        // If we refreshed auth successfully, try the operation again
+     
         return handleSessionStatusUpdate(sessionId, newStatus);
       }
 
@@ -526,7 +524,7 @@ function AdminDashboard() {
     }
   };
 
-  // Function to handle payment creation
+ 
   const handleCreatePayment = async (mentorId, selectedSessions) => {
     try {
       console.log(
@@ -541,7 +539,7 @@ function AdminDashboard() {
         return;
       }
 
-      // First, verify mentor has bank details
+     
       const mentor = mentors.find((m) => m.id === mentorId);
       if (!mentor) {
         setError("Selected mentor not found.");
@@ -549,7 +547,7 @@ function AdminDashboard() {
         return;
       }
 
-      // Check if mentor has complete bank details
+     
       if (
         !mentor.bankName ||
         !mentor.accountNumber ||
@@ -612,7 +610,7 @@ function AdminDashboard() {
 
       console.log("Sending payment data:", paymentData);
 
-      // Check if the API endpoint is reachable
+     
       try {
         const pingResponse = await axios.get("/api/users");
         console.log(
@@ -626,7 +624,7 @@ function AdminDashboard() {
         return;
       }
 
-      // Set explicit headers for the payment creation request
+  
       const response = await axios.post("/api/payments", paymentData, {
         headers: {
           "Content-Type": "application/json",
@@ -636,29 +634,29 @@ function AdminDashboard() {
 
       console.log("Payment created successfully:", response.data);
 
-      // Check if we have the correct response format
+     
       if (response.data && response.data.payment) {
-        // Extract payment and clientSecret
+ 
         const { payment, clientSecret } = response.data;
 
         console.log("Payment ID:", payment.id);
         console.log("Client Secret:", clientSecret);
 
-        // Store data for Stripe modal
+       
         setStripePaymentData({
           clientSecret,
           paymentId: payment.id,
           amount: payment.totalAmount,
         });
 
-        // Open the Stripe payment modal
+    
         setStripeModalOpen(true);
       } else {
-        // Fallback for compatibility with older API responses
+       
         console.log("Using fallback payment handling");
         const payment = response.data;
 
-        // Show confirmation and proceed directly
+       
         const confirmPayment = window.confirm(
           `Payment created successfully for ₹${payment.totalAmount}.\n\n` +
             `Would you like to process this payment now?`
@@ -672,7 +670,7 @@ function AdminDashboard() {
         }
       }
 
-      // Refresh sessions and payments data immediately to show pending payment
+    
       const [sessionsRes, paymentsRes] = await Promise.all([
         axios.get("/api/sessions"),
         axios.get("/api/payments"),
@@ -685,18 +683,17 @@ function AdminDashboard() {
     } catch (err) {
       console.error("Failed to create payment:", err);
 
-      // More detailed error logging
+  
       if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
+       
         console.error("Error response data:", err.response.data);
         console.error("Error response status:", err.response.status);
         console.error("Error response headers:", err.response.headers);
       } else if (err.request) {
-        // The request was made but no response was received
+       
         console.error("Error request:", err.request);
       } else {
-        // Something happened in setting up the request that triggered an Error
+     
         console.error("Error message:", err.message);
       }
 
@@ -710,7 +707,7 @@ function AdminDashboard() {
     }
   };
 
-  // Function to process a payment with Stripe
+
   const processPayment = async (paymentId, paymentIntentId) => {
     try {
       setLoading(true);
@@ -718,23 +715,23 @@ function AdminDashboard() {
         `Processing payment ${paymentId} with intent ID: ${paymentIntentId}`
       );
 
-      // Call the backend to process the payment
+    
       const response = await axios.post(
         `/api/payments/${paymentId}/process-stripe-payment?paymentIntentId=${paymentIntentId}`
       );
 
       console.log("Payment processed:", response.data);
 
-      // Close the modal if it's open
+   
       if (stripeModalOpen) {
         setStripeModalOpen(false);
         setStripePaymentData(null);
       }
 
-      // Show success message
+   
       alert(`Payment processed successfully to mentor's bank account.`);
 
-      // Refresh data
+     
       await refreshData();
     } catch (err) {
       console.error(
@@ -747,13 +744,13 @@ function AdminDashboard() {
         }`
       );
 
-      // Don't close the modal on error if it's open - let the user try again
+     
     } finally {
       setLoading(false);
     }
   };
 
-  // Function to handle payment status update
+ 
   const handleUpdatePaymentStatus = async (paymentId, newStatus) => {
     try {
       console.log(`Updating payment ${paymentId} to status: ${newStatus}`);
@@ -764,7 +761,7 @@ function AdminDashboard() {
       );
       console.log("Payment status updated successfully:", response.data);
 
-      // Refresh payments data
+     
       const paymentsResponse = await axios.get("/api/payments");
       setPayments(paymentsResponse.data.payments || paymentsResponse.data);
 
@@ -784,14 +781,14 @@ function AdminDashboard() {
     }
   };
 
-  // Function to view payment details
+ 
   const handleViewPaymentDetails = async (paymentId) => {
     try {
       console.log(`Viewing details for payment ${paymentId}`);
       const response = await axios.get(`/api/payments/${paymentId}`);
       console.log("Payment details:", response.data);
 
-      // Here you could show a modal with payment details
+      
       alert(
         `Payment details for ID ${paymentId}:\n` +
           `Amount: ₹${response.data.totalAmount}\n` +
@@ -814,7 +811,7 @@ function AdminDashboard() {
     }
   };
 
-  // Function to check and display authentication details
+ 
   const displayAuthDebugInfo = async () => {
     try {
       setShowDebugInfo(true);
@@ -830,7 +827,7 @@ function AdminDashboard() {
         console.error("Can't access /api/users:", e);
       }
 
-      // Test token with sessions endpoint
+  
       let sessionsAccessible = false;
       try {
         await axios.get("/api/sessions");
@@ -839,7 +836,7 @@ function AdminDashboard() {
         console.error("Can't access /api/sessions:", e);
       }
 
-      // Display the debug info in a more visible way
+    
       setError(`
         AUTH DEBUG:
         - Token exists: ${!!token}
@@ -858,13 +855,13 @@ function AdminDashboard() {
     }
   };
 
-  // Helper function to filter sessions by mentor
+ 
   const filterSessionsByMentor = (mentorId) => {
     setFilterMentorId(mentorId);
     setActiveTab("sessions");
   };
 
-  // Function to fetch all conversations
+
   const fetchConversations = async () => {
     try {
       setLoading(true);
@@ -872,22 +869,22 @@ function AdminDashboard() {
       const response = await axios.get("/api/messages/conversations");
       console.log("Admin conversations received:", response.data);
 
-      // Handle empty or malformed responses
+      
       if (!response.data) {
         console.warn("No data received from conversations API");
         setConversations([]);
       } else if (Array.isArray(response.data)) {
-        // Ensure all conversation objects have required properties
+        
         const validatedConversations = response.data
           .filter((conv) => conv !== null)
           .map((conv) => {
             return {
               ...conv,
-              // Ensure participants is an array
+            
               participants: Array.isArray(conv.participants)
                 ? conv.participants.filter((p) => p !== null)
                 : [],
-              // Ensure other properties have default values if missing
+          
               id:
                 conv.id ||
                 `temp-${Math.random().toString(36).substring(2, 11)}`,
@@ -907,7 +904,7 @@ function AdminDashboard() {
         "Failed to load conversations: " +
           (err.response?.data?.message || err.message)
       );
-      // Set empty array to prevent null reference errors
+     
       setConversations([]);
     } finally {
       setLoading(false);
@@ -1283,26 +1280,23 @@ function SessionsTab({
   const [error, setError] = React.useState("");
   const { refreshAuth } = React.useContext(AuthContext);
 
-  // Add pagination state
+ 
   const [currentPage, setCurrentPage] = React.useState(0);
   const [totalPages, setTotalPages] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
   const [totalItems, setTotalItems] = React.useState(0);
   const [paginatedSessions, setPaginatedSessions] = React.useState([]);
 
-  // Load sessions with pagination
+
   React.useEffect(() => {
     fetchPaginatedSessions(currentPage, pageSize);
   }, [currentPage, pageSize, selectedStatus]);
 
-  // Function to fetch paginated sessions
   const fetchPaginatedSessions = async (page, size) => {
     try {
       setLoading(true);
-      // Use the provided size parameter or fall back to the component's pageSize state
       const actualSize = size || pageSize;
 
-      // Build the URL with status filter if applicable
       let url = `/api/sessions?page=${page}&size=${actualSize}&sortBy=sessionDateTime&direction=desc`;
       if (selectedStatus !== "ALL") {
         url += `&status=${selectedStatus}`;
@@ -1319,20 +1313,16 @@ function SessionsTab({
         actualSize
       );
 
-      // Handle different response formats
       let sessionsData = [];
       let totalItemsCount = 0;
       let totalPagesCount = 0;
 
-      // Check if response format matches paginated structure
       if (response.data && typeof response.data === "object") {
         if (Array.isArray(response.data.sessions)) {
-          // New paginated response format
           sessionsData = response.data.sessions;
           totalItemsCount = response.data.totalItems || 0;
           totalPagesCount = response.data.totalPages || 0;
         } else if (Array.isArray(response.data)) {
-          // Direct array format
           sessionsData = response.data;
           totalItemsCount = sessionsData.length;
           totalPagesCount = Math.ceil(sessionsData.length / actualSize);
@@ -1343,7 +1333,6 @@ function SessionsTab({
         `Loaded ${sessionsData.length} sessions out of ${totalItemsCount} total`
       );
 
-      // Apply mentor filter if needed
       let filteredSessions = sessionsData;
       if (filterMentorId) {
         filteredSessions = sessionsData.filter(
@@ -1366,7 +1355,6 @@ function SessionsTab({
           (err.response?.data?.message || err.message)
       );
 
-      // If authentication error, try to refresh
       if (
         err.response &&
         err.response.status === 401 &&
@@ -1382,7 +1370,6 @@ function SessionsTab({
         }
       }
 
-      // Fallback to client-side filtering
       console.log("Falling back to client-side session filtering");
       let filteredSessions = filterMentorId
         ? sessions.filter(
@@ -1396,7 +1383,6 @@ function SessionsTab({
         );
       }
 
-      // Apply client-side pagination
       const startIndex = page * actualSize;
       const endIndex = Math.min(
         startIndex + actualSize,
@@ -1410,47 +1396,38 @@ function SessionsTab({
     }
   };
 
-  // Function to handle page change
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
 
-  // Function to handle page size change
   const handlePageSizeChange = (event) => {
     const newSize = parseInt(event.target.value);
     setPageSize(newSize);
     setCurrentPage(0); // Reset to first page when changing page size
   };
 
-  // Fetch mentors for dropdown
   const fetchMentors = async () => {
     try {
       setLoading(true);
-      // Request ALL mentors with a large page size to ensure we get everyone
       const response = await axios.get("/api/users?paginate=true&size=1000");
 
-      // Determine if we have a paginated response (with users property) or direct array
       const usersData = response.data.users
         ? response.data.users
         : response.data;
 
-      // Store pagination metadata if available
       if (response.data.totalPages) {
         console.log(`Total pages: ${response.data.totalPages}, 
                     Current page: ${response.data.currentPage}, 
                     Total items: ${response.data.totalItems}`);
       }
 
-      // Filter for mentors from the users array
       const mentors = usersData.filter((user) => {
         if (!user.roles || !Array.isArray(user.roles)) return false;
 
         return user.roles.some((role) => {
           if (typeof role === "string") {
-            // Check both formats
             return role === "ROLE_MENTOR" || role === "MENTOR";
           } else if (typeof role === "object" && role !== null) {
-            // Check both formats
             return role.name === "ROLE_MENTOR" || role.name === "MENTOR";
           }
           return false;
@@ -1466,7 +1443,6 @@ function SessionsTab({
       setError("Failed to load mentors: " + err.message);
       setLoading(false);
 
-      // Try to refresh auth if it's an auth error
       if (
         err.message === "Authentication error" ||
         (err.response && err.response.status === 401)
@@ -1474,7 +1450,6 @@ function SessionsTab({
         try {
           const refreshSuccessful = await refreshAuth();
           if (refreshSuccessful) {
-            // Try again after successful refresh
             fetchMentors();
           }
         } catch (refreshErr) {
@@ -1484,26 +1459,22 @@ function SessionsTab({
     }
   };
 
-  // Open create modal and fetch mentors
   const openCreateModal = () => {
     setShowCreateModal(true);
     fetchMentors();
     setError("");
   };
 
-  // Handle input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewSession({ ...newSession, [name]: value });
   };
 
-  // Function to handle session creation
   const handleCreateSession = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // Debug token and role info
     const token = localStorage.getItem("token");
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     console.log("Creating session with auth:", {
@@ -1514,18 +1485,15 @@ function SessionsTab({
     });
 
     try {
-      // Check if mentor exists
       if (!newSession.mentorId) {
         throw new Error("Please select a mentor");
       }
 
-      // Calculate final payout amount
       const durationHours = newSession.duration / 60;
       const finalPayoutAmount = (durationHours * newSession.hourlyRate).toFixed(
         2
       );
 
-      // Prepare session data
       const sessionData = {
         mentor: { id: newSession.mentorId },
         sessionType: newSession.sessionType,
@@ -1540,10 +1508,8 @@ function SessionsTab({
 
       console.log("Creating new session:", sessionData);
 
-      // Add a timestamp before making the request to track how recent this attempt is
       const startTime = Date.now();
 
-      // First, test our authentication with a simple GET request
       console.log("Testing authentication with a simple GET request...");
       try {
         await axios.get("/api/users");
@@ -1561,11 +1527,9 @@ function SessionsTab({
         }
       }
 
-      // Send POST request to create session
       const response = await axios.post("/api/sessions", sessionData);
       console.log("Session created successfully:", response.data);
 
-      // Close modal and reset form
       setShowCreateModal(false);
       setNewSession({
         mentorId: "",
@@ -1576,10 +1540,8 @@ function SessionsTab({
         notes: "",
       });
 
-      // Refresh sessions list WITHOUT page reload
       try {
         const sessionsResponse = await axios.get("/api/sessions");
-        // Update the parent component's sessions state
         if (typeof onSessionsUpdated === "function") {
           onSessionsUpdated(sessionsResponse.data);
         } else {
@@ -1588,7 +1550,6 @@ function SessionsTab({
           );
         }
 
-        // Show success message
         alert("Session created successfully!");
       } catch (refreshErr) {
         console.error("Error refreshing sessions:", refreshErr);
@@ -1602,7 +1563,6 @@ function SessionsTab({
         err.response?.data || err.message
       );
 
-      // Check for specific permission issues
       if (err.response?.status === 403) {
         setError(
           "You don't have permission to create sessions. This action requires Admin privileges."
@@ -1611,7 +1571,6 @@ function SessionsTab({
         return;
       }
 
-      // If it's an authentication error, try to refresh token
       if (
         err.message === "Authentication error" ||
         (err.response && err.response.status === 401)
@@ -1621,8 +1580,6 @@ function SessionsTab({
             "Session creation failed due to auth - attempting refresh"
           );
 
-          // Check if we've already tried refreshing very recently (within 5 seconds)
-          // This prevents retry loops
           const lastRefreshTime = parseInt(
             localStorage.getItem("last_session_refresh") || "0"
           );
@@ -1638,7 +1595,6 @@ function SessionsTab({
             return;
           }
 
-          // Mark this refresh attempt
           localStorage.setItem("last_session_refresh", now.toString());
 
           const refreshSuccessful = await refreshAuth();
@@ -1647,11 +1603,8 @@ function SessionsTab({
             console.log(
               "Auth refreshed successfully, retrying session creation"
             );
-            // Wait a moment to ensure token is propagated
             setTimeout(() => {
-              // Clear the form error before retrying
               setError("");
-              // Create a new event-like object for the retry
               const retryEvent = { preventDefault: () => {} };
               handleCreateSession(retryEvent);
             }, 1000);
@@ -1666,7 +1619,6 @@ function SessionsTab({
           setError("Session could not be created - authentication failed.");
         }
       } else {
-        // Not an auth error or refresh failed
         setError(
           `Failed to create session: ${
             err.response?.data?.message || err.message
@@ -1678,7 +1630,6 @@ function SessionsTab({
     }
   };
 
-  // Handle CSV import
   const handleCsvImport = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -1691,7 +1642,6 @@ function SessionsTab({
         const rows = csvData.split("\n");
         const headers = rows[0].split(",");
 
-        // Validate headers
         const requiredHeaders = [
           "mentorId",
           "sessionType",
@@ -1709,7 +1659,6 @@ function SessionsTab({
           return;
         }
 
-        // Process each row
         for (let i = 1; i < rows.length; i++) {
           if (!rows[i].trim()) continue; // Skip empty rows
 
@@ -1720,7 +1669,6 @@ function SessionsTab({
             rowData[header.trim()] = values[index]?.trim();
           });
 
-          // Validate row data
           if (
             !rowData.mentorId ||
             !rowData.sessionType ||
@@ -1732,13 +1680,11 @@ function SessionsTab({
             continue;
           }
 
-          // Calculate final payout amount
           const durationHours = parseInt(rowData.duration) / 60;
           const finalPayoutAmount = (
             durationHours * parseFloat(rowData.hourlyRate)
           ).toFixed(2);
 
-          // Prepare session data
           const sessionData = {
             mentor: { id: rowData.mentorId },
             sessionType: rowData.sessionType,
@@ -1751,18 +1697,15 @@ function SessionsTab({
             notes: rowData.notes || "",
           };
 
-          // Create session
           await axios.post("/api/sessions", sessionData);
         }
 
-        // Refresh sessions list
         window.location.reload();
       } catch (err) {
         console.error("Error importing CSV:", err);
         setError(`Failed to import CSV: ${err.message}`);
       } finally {
         setLoading(false);
-        // Reset file input
         event.target.value = null;
       }
     };
@@ -1770,13 +1713,11 @@ function SessionsTab({
     reader.readAsText(file);
   };
 
-  // Filter sessions based on selected status
   const filteredSessions =
     selectedStatus === "ALL"
       ? sessions
       : sessions.filter((session) => session.status === selectedStatus);
 
-  // Function to view session details
   const handleViewSession = (session) => {
     setSelectedSession(session);
     setShowViewModal(true);
@@ -2403,14 +2344,12 @@ function MentorsTab({ mentors, sessions, onViewSessions }) {
     sessionsCount: sessions.length,
   });
 
-  // Add debug info
   if (mentors.length === 0) {
     console.warn("No mentors data available to display");
   } else {
     console.log("First mentor sample:", mentors[0]);
   }
 
-  // Add pagination state
   const [currentPage, setCurrentPage] = React.useState(0);
   const [pageSize, setPageSize] = React.useState(10);
   const [totalPages, setTotalPages] = React.useState(0);
@@ -2418,7 +2357,6 @@ function MentorsTab({ mentors, sessions, onViewSessions }) {
   const [paginatedMentors, setPaginatedMentors] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
 
-  // Set up pagination on component mount or when mentors/pageSize changes
   React.useEffect(() => {
     fetchPaginatedMentors();
   }, [mentors, pageSize, currentPage]);
@@ -2427,22 +2365,17 @@ function MentorsTab({ mentors, sessions, onViewSessions }) {
     setLoading(true);
 
     try {
-      // Use the actual pageSize from state for proper pagination navigation
       const response = await axios.get(
         `/api/users?page=${currentPage}&size=${pageSize}&sortBy=fullName&direction=asc`
       );
 
       console.log("Received mentor data:", response.data);
 
-      // Extract users data - handle both formats (direct array or paginated object)
       let usersData = [];
       if (response.data && Array.isArray(response.data)) {
-        // Direct array format
         usersData = response.data;
       } else if (response.data && Array.isArray(response.data.users)) {
-        // Paginated object format
         usersData = response.data.users;
-        // Update pagination state if available
         if (response.data.totalItems !== undefined) {
           setTotalItems(response.data.totalItems);
         }
@@ -2451,7 +2384,6 @@ function MentorsTab({ mentors, sessions, onViewSessions }) {
         }
       }
 
-      // Filter for mentors
       const mentorsData = usersData.filter((user) => {
         if (!user.roles || !Array.isArray(user.roles)) return false;
 
@@ -2470,7 +2402,6 @@ function MentorsTab({ mentors, sessions, onViewSessions }) {
       );
       setPaginatedMentors(mentorsData);
 
-      // If we didn't get pagination info from the server, calculate it ourselves
       if (response.data && !response.data.totalItems) {
         const allMentors = mentors;
         setTotalItems(allMentors.length);
@@ -2479,7 +2410,6 @@ function MentorsTab({ mentors, sessions, onViewSessions }) {
     } catch (err) {
       console.error("Error fetching paginated mentors:", err);
 
-      // Fallback to client-side pagination if server pagination fails
       console.log("Falling back to client-side pagination");
       const startIndex = currentPage * pageSize;
       const endIndex = Math.min(startIndex + pageSize, mentors.length);
@@ -2493,16 +2423,14 @@ function MentorsTab({ mentors, sessions, onViewSessions }) {
     }
   };
 
-  // Function to handle page change
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
 
-  // Function to handle page size change
   const handlePageSizeChange = (event) => {
     const newSize = parseInt(event.target.value);
     setPageSize(newSize);
-    setCurrentPage(0); // Reset to first page when changing page size
+    setCurrentPage(0); 
   };
 
   return (
@@ -2793,7 +2721,6 @@ function PaymentsTab({
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [localSessions, setLocalSessions] = React.useState([]); // Add localSessions state
 
-  // Add receipt functionality states
   const [showReceiptModal, setShowReceiptModal] = React.useState(false);
   const [activePayment, setActivePayment] = React.useState(null);
   const [receiptLoading, setReceiptLoading] = React.useState(false);
@@ -2801,7 +2728,6 @@ function PaymentsTab({
   const [sendEmailMessage, setSendEmailMessage] = React.useState("");
   const [sendEmailModalOpen, setSendEmailModalOpen] = React.useState(false);
 
-  // Initialize localSessions with provided sessions and keep in sync
   React.useEffect(() => {
     if (sessions && sessions.length > 0) {
       console.log(
@@ -2834,42 +2760,36 @@ function PaymentsTab({
           return prevSessions;
         }
 
-        // If no existing sessions, just use the provided ones
         return sessions;
       });
     }
   }, [sessions]);
 
-  // Set up initial state from prop if provided
   React.useEffect(() => {
     if (paymentModalConfig) {
       handleCreatePaymentForMentor(
         paymentModalConfig.mentorId,
         paymentModalConfig.sessionIds
       );
-      // Clear the config after using it
       setPaymentModalConfig(null);
     }
   }, [paymentModalConfig]);
 
-  // Set up pagination on component mount or when pagination parameters change
   React.useEffect(() => {
     fetchPaginatedPayments().catch((err) => {
       console.error("Error in pagination effect:", err);
     });
-  }, [pageSize, currentPage]); // Remove dependency on payments to avoid double-loading
+  }, [pageSize, currentPage]); 
 
   const fetchPaginatedPayments = async () => {
     setLoading(true);
 
     try {
-      // Ensure we have a valid authentication token
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Authentication token not found. Please login again.");
       }
 
-      // Use server-side pagination for better performance with large datasets
       const response = await axios.get(
         `/api/payments?page=${currentPage}&size=${pageSize}&sortBy=paymentDate&direction=desc`,
         {
@@ -2880,14 +2800,12 @@ function PaymentsTab({
       );
       console.log("Payments pagination response:", response.data);
 
-      // Handle different response formats
       let paymentsData = [];
       let totalItemsCount = 0;
       let totalPagesCount = 0;
 
       if (response.data && typeof response.data === "object") {
         if (Array.isArray(response.data.payments)) {
-          // New paginated response format
           paymentsData = response.data.payments;
           totalItemsCount = response.data.totalItems || 0;
           totalPagesCount = response.data.totalPages || 0;
@@ -2898,12 +2816,10 @@ function PaymentsTab({
             } of ${totalPagesCount})`
           );
         } else if (Array.isArray(response.data)) {
-          // Direct array format (old API)
           paymentsData = response.data;
           totalItemsCount = payments.length; // Fall back to the full list length
           totalPagesCount = Math.ceil(payments.length / pageSize);
 
-          // Apply manual pagination if the API doesn't support it
           const startIndex = currentPage * pageSize;
           const endIndex = Math.min(startIndex + pageSize, paymentsData.length);
           paymentsData = paymentsData.slice(startIndex, endIndex);
@@ -2916,7 +2832,6 @@ function PaymentsTab({
         }
       } else {
         console.warn("Invalid payments response format", response.data);
-        // Fall back to client-side pagination
         const startIndex = currentPage * pageSize;
         const endIndex = Math.min(startIndex + pageSize, payments.length);
         paymentsData = payments.slice(startIndex, endIndex);
@@ -2930,7 +2845,6 @@ function PaymentsTab({
     } catch (err) {
       console.error("Error fetching paginated payments:", err);
 
-      // If server-side pagination fails, fall back to client-side
       console.log("Falling back to client-side payment pagination");
       const startIndex = currentPage * pageSize;
       const endIndex = Math.min(startIndex + pageSize, payments.length);
@@ -2944,48 +2858,45 @@ function PaymentsTab({
     }
   };
 
-  // Function to handle page change
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
 
-  // Function to handle page size change
   const handlePageSizeChange = (event) => {
     const newSize = parseInt(event.target.value);
     setPageSize(newSize);
-    setCurrentPage(0); // Reset to first page when changing page size
+    setCurrentPage(0);
   };
 
-  // Open the payment creation modal
   const openCreateModal = () => {
     setShowCreateModal(true);
     setSelectedMentor("");
     setSessionsToPayFor([]);
-    fetchAllMentors(); // Fetch all mentors when opening the modal
+    fetchAllMentors(); 
   };
 
-  // Fetch all mentors directly to ensure we have the complete list
+
   const fetchAllMentors = async () => {
     try {
       setLoading(true);
-      setError(""); // Clear any previous errors
+      setError("");
 
       console.log("Fetching all mentors for payment creation...");
 
-      // Make sure we have a valid authentication token
+     
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Authentication token not found. Please login again.");
       }
 
-      // Request ALL mentors with a large page size to ensure we get everyone
+     
       const response = await axios.get("/api/users?paginate=true&size=1000", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // Determine if we have a paginated response (with users property) or direct array
+     
       const usersData = response.data.users
         ? response.data.users
         : response.data;
@@ -2994,7 +2905,6 @@ function PaymentsTab({
         throw new Error("Invalid response format: users data is not an array");
       }
 
-      // Filter for mentors from the users array
       const mentorsList = usersData.filter((user) => {
         if (!user || !user.roles || !Array.isArray(user.roles)) return false;
 
@@ -3023,24 +2933,20 @@ function PaymentsTab({
     }
   };
 
-  // Handle mentor selection change
   const handleMentorChange = (e) => {
     const mentorId = e.target.value;
     setSelectedMentor(mentorId);
     setSessionsToPayFor([]);
 
     if (mentorId) {
-      // Refresh sessions specific to this mentor
       console.log(`Loading sessions for mentor ID: ${mentorId}`);
 
-      // Ensure we have a valid authentication token
       const token = localStorage.getItem("token");
       if (!token) {
         setError("Authentication token not found. Please login again.");
         return;
       }
 
-      // Load complete mentor data including bank details
       axios
         .get(`/api/users/${mentorId}`, {
           headers: {
@@ -3050,7 +2956,6 @@ function PaymentsTab({
         .then((response) => {
           console.log("Loaded complete mentor details:", response.data);
 
-          // Update mentor in the availableMentors array with complete details
           setAvailableMentors((prevMentors) => {
             return prevMentors.map((mentor) =>
               mentor.id === mentorId ? { ...mentor, ...response.data } : mentor
@@ -3063,7 +2968,6 @@ function PaymentsTab({
             setError(
               "Authentication failed. Please refresh the page and login again."
             );
-            // Try to refresh the auth token
             if (typeof window.refreshAuth === "function") {
               window
                 .refreshAuth()
@@ -3074,7 +2978,6 @@ function PaymentsTab({
           }
         });
 
-      // Load approved sessions for this mentor
       axios
         .get(`/api/sessions?mentorId=${mentorId}&status=APPROVED`, {
           headers: {
@@ -3088,7 +2991,6 @@ function PaymentsTab({
 
           console.log(`Loaded ${mentorSessions.length} sessions for mentor`);
 
-          // Replace only this mentor's sessions in the main sessions array
           const otherSessions = (
             localSessions && localSessions.length > 0
               ? localSessions
@@ -3102,7 +3004,6 @@ function PaymentsTab({
             `Updated sessions array with ${updatedSessions.length} total sessions`
           );
 
-          // Update local sessions state to reflect the fetched mentor sessions
           setLocalSessions(updatedSessions);
         })
         .catch((error) => {
@@ -3111,7 +3012,6 @@ function PaymentsTab({
             setError(
               "Authentication failed. Please refresh the page and login again."
             );
-            // Try to refresh the auth token
             if (typeof window.refreshAuth === "function") {
               window
                 .refreshAuth()
@@ -3124,7 +3024,6 @@ function PaymentsTab({
     }
   };
 
-  // Handle session selection for payment
   const handleSessionSelection = (sessionId, isSelected) => {
     if (isSelected) {
       setSessionsToPayFor([...sessionsToPayFor, sessionId]);
@@ -3133,15 +3032,13 @@ function PaymentsTab({
     }
   };
 
-  // Create payment directly from mentor ID and session IDs (for use with the global handler)
   const handleCreatePaymentForMentor = (mentorId, sessionIds) => {
     setShowCreateModal(true);
     setSelectedMentor(mentorId);
     setSessionsToPayFor(sessionIds || []);
-    fetchAllMentors(); // Ensure all mentors are loaded
+    fetchAllMentors(); 
   };
 
-  // Submit payment creation
   const handleSubmitPayment = () => {
     if (selectedMentor && sessionsToPayFor.length > 0) {
       onCreatePayment(selectedMentor, sessionsToPayFor);
@@ -3149,7 +3046,7 @@ function PaymentsTab({
     }
   };
 
-  // Function to view receipt
+ 
   const handleViewReceipt = (payment) => {
     setActivePayment(payment);
     setShowReceiptModal(true);
@@ -3157,7 +3054,7 @@ function PaymentsTab({
     setSendEmailMessage("");
   };
 
-  // Function to generate receipt
+
   const handleGenerateReceipt = async () => {
     if (!activePayment) return;
 
@@ -3167,13 +3064,13 @@ function PaymentsTab({
 
       console.log(`Generating receipt for payment ID: ${activePayment.id}`);
 
-      // Ensure we have a valid authentication token
+     
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Authentication token not found. Please login again.");
       }
 
-      // First, check if the payment exists and is valid
+      
       const checkResponse = await axios.get(
         `/api/payments/${activePayment.id}`,
         {
@@ -3221,13 +3118,13 @@ function PaymentsTab({
           console.warn("Could not verify receipt URL:", fetchErr);
         }
 
-        // Update the active payment with the new receipt URL
+       
         setActivePayment({
           ...activePayment,
           receiptUrl: response.data.receiptUrl,
         });
 
-        // Also update the payment in the list
+      
         const updatedPayments = paginatedPayments.map((p) =>
           p.id === activePayment.id
             ? { ...p, receiptUrl: response.data.receiptUrl }
@@ -3235,7 +3132,7 @@ function PaymentsTab({
         );
         setPaginatedPayments(updatedPayments);
 
-        // Alert user that the receipt is ready
+     
         alert(
           "Receipt has been successfully generated. You can now download or print it directly from this page."
         );
@@ -3254,11 +3151,11 @@ function PaymentsTab({
     }
   };
 
-  // Function to send receipt to mentor
+ 
   const handleSendReceipt = async () => {
     if (!activePayment || !activePayment.receiptUrl) return;
 
-    // Verify mentor has an email
+   
     if (!activePayment.mentor || !activePayment.mentor.email) {
       setReceiptError("Cannot send receipt: Mentor email address is missing");
       return;
@@ -3268,7 +3165,7 @@ function PaymentsTab({
       setReceiptLoading(true);
       setReceiptError("");
 
-      // Ensure we have a valid authentication token
+     
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Authentication token not found. Please login again.");
@@ -3299,16 +3196,16 @@ function PaymentsTab({
       if (response.data && response.data.success) {
         console.log("Receipt sent successfully to mentor's email");
 
-        // Update the active payment with receipt sent status
+       
         setActivePayment({ ...activePayment, receiptSent: true });
 
-        // Also update the payment in the list
+     
         const updatedPayments = paginatedPayments.map((p) =>
           p.id === activePayment.id ? { ...p, receiptSent: true } : p
         );
         setPaginatedPayments(updatedPayments);
 
-        // Clear the email message
+       
         setSendEmailMessage("");
       } else {
         console.error("Receipt sending failed:", response.data);
@@ -3326,7 +3223,7 @@ function PaymentsTab({
     }
   };
 
-  // Get formatted payment status with color indication
+  
   const getPaymentStatusDisplay = (status) => {
     let bgColor, textColor;
 
@@ -4178,14 +4075,14 @@ function ReportsTab({ sessions, payments, mentors }) {
   const [activeTab, setActiveTab] = React.useState("overview");
   const [chartInstances, setChartInstances] = React.useState({});
 
-  // References for chart canvases
+
   const sessionsChartRef = React.useRef(null);
   const paymentsChartRef = React.useRef(null);
   const sessionTypesChartRef = React.useRef(null);
   const paymentStatusChartRef = React.useRef(null);
   const gstFeeChartRef = React.useRef(null);
 
-  // Generate monthly data for charts
+ 
   const monthlyData = React.useMemo(() => {
     const now = new Date();
     const monthNames = [
@@ -4213,7 +4110,7 @@ function ReportsTab({ sessions, payments, mentors }) {
       };
     });
 
-    // Count sessions per month
+   
     const sessionsPerMonth = last6Months.map((monthData) => {
       const count = sessions.filter((session) => {
         const sessionDate = new Date(session.sessionDateTime);
@@ -4228,7 +4125,7 @@ function ReportsTab({ sessions, payments, mentors }) {
       };
     });
 
-    // Calculate payments per month
+ 
     const paymentsPerMonth = last6Months.map((monthData) => {
       const monthPayments = payments.filter((payment) => {
         const paymentDate = new Date(payment.paymentDate);
@@ -4243,13 +4140,13 @@ function ReportsTab({ sessions, payments, mentors }) {
         0
       );
 
-      // Calculate GST for this month
+     
       const gst = monthPayments.reduce(
         (sum, payment) => sum + parseFloat(payment.gstAmount || 0),
         0
       );
 
-      // Calculate platform fee for this month
+     
       const platformFee = monthPayments.reduce(
         (sum, payment) => sum + parseFloat(payment.platformFee || 0),
         0
@@ -4264,21 +4161,21 @@ function ReportsTab({ sessions, payments, mentors }) {
       };
     });
 
-    // Count session types
+  
     const sessionTypes = {};
     sessions.forEach((session) => {
       const type = session.sessionType || "Unknown";
       sessionTypes[type] = (sessionTypes[type] || 0) + 1;
     });
 
-    // Payment status distribution
+   
     const paymentStatuses = {};
     payments.forEach((payment) => {
       const status = payment.status || "Unknown";
       paymentStatuses[status] = (paymentStatuses[status] || 0) + 1;
     });
 
-    // Total GST and platform fee
+    
     const totalGST = payments.reduce(
       (sum, payment) => sum + parseFloat(payment.gstAmount || 0),
       0
@@ -4299,9 +4196,9 @@ function ReportsTab({ sessions, payments, mentors }) {
     };
   }, [sessions, payments]);
 
-  // Effect to initialize and update charts when data or active tab changes
+ 
   React.useEffect(() => {
-    // Clean up previous chart instances
+  
     Object.values(chartInstances).forEach((chart) => {
       if (chart) {
         try {
@@ -4314,13 +4211,13 @@ function ReportsTab({ sessions, payments, mentors }) {
 
     const newChartInstances = {};
 
-    // Check if Chart.js is available
+   
     const ChartClass = window.Chart || window.ChartInstance;
 
     if (!ChartClass) {
       console.error("Chart.js is not available. Charts will not be rendered.");
 
-      // Check if we need to load the fallback
+    
       if (
         !document.querySelector('script[src="/js/ReportsChartFallback.js"]')
       ) {
@@ -4329,14 +4226,14 @@ function ReportsTab({ sessions, payments, mentors }) {
         fallbackScript.src = "/js/ReportsChartFallback.js";
         fallbackScript.onload = function () {
           console.log("Fallback loaded, updating charts");
-          setChartInstances({}); // Force re-render by clearing current charts
+          setChartInstances({}); 
         };
         document.body.appendChild(fallbackScript);
       }
       return;
     }
 
-    // Function to safely create chart
+   
     const createChart = (ref, config) => {
       try {
         if (ref.current) {
@@ -4350,13 +4247,13 @@ function ReportsTab({ sessions, payments, mentors }) {
       }
     };
 
-    // Only initialize charts for active tab
+   
     if (
       activeTab === "overview" &&
       sessionsChartRef.current &&
       paymentsChartRef.current
     ) {
-      // Sessions Chart
+    
       const sessionsCtx = sessionsChartRef.current.getContext("2d");
       newChartInstances.sessions = createChart(sessionsChartRef, {
         type: "bar",
@@ -4413,7 +4310,7 @@ function ReportsTab({ sessions, payments, mentors }) {
         },
       });
 
-      // Payments Chart
+      
       newChartInstances.payments = createChart(paymentsChartRef, {
         type: "bar",
         data: {
@@ -5167,10 +5064,8 @@ function MessagesTab({
   const [error, setError] = React.useState("");
   const messagesEndRef = React.useRef(null);
 
-  // Add state for filtered and merged conversations
   const [mergedHistory, setMergedHistory] = React.useState(false);
 
-  // Initialize or clean up when component mounts/unmounts
   React.useEffect(() => {
     console.log(
       "MessagesTab initialized with",
@@ -5178,14 +5073,12 @@ function MessagesTab({
       "conversations"
     );
 
-    // Clear message state when component unmounts to prevent stale data
     return () => {
       setMessages([]);
       setCurrentConversation(null);
     };
   }, []);
 
-  // Fetch messages for a specific conversation
   const fetchMessages = async (conversationId) => {
     if (!conversationId) {
       console.error("No conversation ID provided");
@@ -5206,11 +5099,9 @@ function MessagesTab({
 
       console.log("Messages fetched:", response.data?.length || 0);
 
-      // Process and deduplicate messages based on ID
       const processedMessages = processChatHistory(response.data);
       setMessages(processedMessages);
 
-      // Find and set the current conversation
       const foundConversation = conversations.find(
         (conv) =>
           conv && conv.id && conv.id.toString() === conversationId.toString()
@@ -5236,7 +5127,6 @@ function MessagesTab({
     }
   };
 
-  // Function to process and deduplicate chat history
   const processChatHistory = (messages) => {
     if (!Array.isArray(messages)) {
       console.warn("Messages is not an array:", messages);
@@ -5245,7 +5135,6 @@ function MessagesTab({
 
     console.log("Processing", messages.length, "messages");
 
-    // Create a Map with message ID as key to eliminate duplicates
     const messageMap = new Map();
     messages.forEach((message) => {
       if (message && message.id) {
@@ -5255,7 +5144,6 @@ function MessagesTab({
       }
     });
 
-    // Convert back to array and sort by sent time
     const uniqueMessages = Array.from(messageMap.values());
     uniqueMessages.sort((a, b) => {
       return new Date(a.sentAt || 0) - new Date(b.sentAt || 0);
@@ -5265,19 +5153,16 @@ function MessagesTab({
     return uniqueMessages;
   };
 
-  // Force refresh all conversations and messages
   const refreshAllConversations = async () => {
     try {
       setLoading(true);
       setError("");
       console.log("Refreshing all conversations");
 
-      // Get all conversations
       const response = await axios.get("/api/messages/conversations");
       console.log("Conversations response:", response.data);
 
       if (response.data && Array.isArray(response.data)) {
-        // Validate and process conversations
         const validConversations = response.data
           .filter((conv) => conv !== null)
           .map((conv) => ({
@@ -5295,11 +5180,9 @@ function MessagesTab({
         setConversations(validConversations);
         setMergedHistory(true);
 
-        // If we had a current conversation, refresh its messages
         if (currentConversation && currentConversation.id) {
           await fetchMessages(currentConversation.id);
         } else if (validConversations.length > 0) {
-          // Select the first conversation if none is selected
           setCurrentConversation(validConversations[0]);
           await fetchMessages(validConversations[0].id);
         }
@@ -5320,7 +5203,6 @@ function MessagesTab({
     }
   };
 
-  // Send a new message
   const sendMessage = async (e) => {
     e.preventDefault();
 
@@ -5356,10 +5238,8 @@ function MessagesTab({
         setMessages((prevMessages) => [...prevMessages, response.data]);
       }
 
-      // Clear the input
       setNewMessage("");
 
-      // Scroll to bottom of the messages
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch (err) {
       console.error("Error sending message:", err);
@@ -5372,25 +5252,21 @@ function MessagesTab({
     }
   };
 
-  // Scroll to bottom when messages change
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-refresh conversations periodically
   React.useEffect(() => {
-    // Initial load
     if (conversations.length === 0) {
       refreshAllConversations();
     }
 
-    // Set up interval for periodic refresh
     const intervalId = setInterval(() => {
       console.log("Auto-refreshing conversations...");
       refreshAllConversations();
-    }, 30000); // Every 30 seconds
+    }, 30000); 
 
-    // Clean up interval on unmount
+    
     return () => clearInterval(intervalId);
   }, []);
 
