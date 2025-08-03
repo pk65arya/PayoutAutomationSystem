@@ -231,9 +231,13 @@ function AdminDashboard() {
       setPaymentModalConfig({ mentorId, sessionIds });
     };
 
+    // Make refreshData globally available for child components
+    window.adminDashboardRefreshData = refreshData;
+
     return () => {
       delete window.createPaymentForSession;
       delete window.handleCreatePaymentForMentor;
+      delete window.adminDashboardRefreshData;
     };
   }, []);
 
@@ -252,8 +256,11 @@ function AdminDashboard() {
 
     fetchData();
 
-    // Set up a timer to refresh data every 5 minutes
-    const refreshInterval = setInterval(fetchData, 5 * 60 * 1000);
+    // Set up a timer to refresh data more frequently (every 30 seconds)
+    const refreshInterval = setInterval(() => {
+      console.log("Running scheduled data refresh");
+      refreshData();
+    }, 30000);
 
     // Clear interval on component unmount
     return () => clearInterval(refreshInterval);
@@ -444,10 +451,12 @@ function AdminDashboard() {
   // Refresh data function that can be called after operations
   const refreshData = async () => {
     try {
+      console.log("Refreshing all data...");
       // Don't show loading state for background refreshes
-      const [sessionsRes, paymentsRes] = await Promise.all([
+      const [sessionsRes, paymentsRes, mentorsRes] = await Promise.all([
         axios.get("/api/sessions"),
         axios.get("/api/payments"),
+        axios.get("/api/users?role=MENTOR"),
       ]);
 
       // Process sessions with better error handling
@@ -459,6 +468,7 @@ function AdminDashboard() {
           sessionsData = [];
         }
       }
+      console.log(`Refreshed ${sessionsData.length} sessions`);
 
       // Process payments with better error handling
       let paymentsData = [];
@@ -469,9 +479,23 @@ function AdminDashboard() {
           paymentsData = [];
         }
       }
+      console.log(`Refreshed ${paymentsData.length} payments`);
 
+      // Process mentors data
+      let mentorsData = [];
+      if (mentorsRes.data && typeof mentorsRes.data === "object") {
+        mentorsData = mentorsRes.data.users || mentorsRes.data;
+        if (!Array.isArray(mentorsData)) {
+          console.warn("Mentors data is not an array during refresh");
+          mentorsData = [];
+        }
+      }
+      console.log(`Refreshed ${mentorsData.length} mentors`);
+
+      // Update state with fresh data
       setSessions(sessionsData);
       setPayments(paymentsData);
+      setMentors(mentorsData);
 
       return true;
     } catch (err) {
@@ -768,12 +792,44 @@ function AdminDashboard() {
       const paymentsResponse = await axios.get("/api/payments");
       setPayments(paymentsResponse.data.payments || paymentsResponse.data);
 
+      // Refresh the UI immediately instead of showing a signout message
+      refreshData();
+
       setError("");
     } catch (err) {
       console.error(
         "Failed to update payment status:",
         err.response?.data || err.message
       );
+
+      // Handle unauthorized (401) error silently by refreshing the data
+      if (err.response && err.response.status === 401) {
+        console.log(
+          "Token may have expired. Attempting to recover by refreshing data..."
+        );
+        try {
+          // Try to recover by refreshing data with current credentials
+          await refreshData();
+
+          // Try the operation again after refreshing
+          const retryResponse = await axios.put(
+            `/api/payments/${paymentId}/status?status=${newStatus}`
+          );
+          console.log(
+            "Payment status updated successfully on retry:",
+            retryResponse.data
+          );
+
+          // Refresh payments data after successful retry
+          const paymentsResponse = await axios.get("/api/payments");
+          setPayments(paymentsResponse.data.payments || paymentsResponse.data);
+          setError("");
+          return;
+        } catch (retryErr) {
+          console.error("Recovery attempt failed:", retryErr);
+        }
+      }
+
       setError(
         `Failed to update payment status: ${
           err.response?.data?.message || err.message
@@ -1275,7 +1331,7 @@ function SessionsTab({
     sessionType: "Online Teaching",
     duration: 60,
     hourlyRate: 1000,
-    sessionDateTime: new Date().toISOString().split("T")[0],
+    sessionDateTime: new Date().toISOString().slice(0, 16), // Format as YYYY-MM-DDTHH:MM for datetime-local input
     notes: "",
   });
   const [availableMentors, setAvailableMentors] = React.useState([]);
@@ -1500,179 +1556,73 @@ function SessionsTab({
   // Function to handle session creation
   const handleCreateSession = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
 
-    // Debug token and role info
-    const token = localStorage.getItem("token");
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    console.log("Creating session with auth:", {
-      tokenExists: !!token,
-      userRoles: userData.roles || [],
-      userId: userData.id,
-      username: userData.username,
-    });
+    // Validate form
+    if (!newSession.mentorId) {
+      setError("Please select a mentor");
+      return;
+    }
 
     try {
-      // Check if mentor exists
-      if (!newSession.mentorId) {
-        throw new Error("Please select a mentor");
-      }
+      setLoading(true);
+      setError("");
 
-      // Calculate final payout amount
-      const durationHours = newSession.duration / 60;
-      const finalPayoutAmount = (durationHours * newSession.hourlyRate).toFixed(
-        2
-      );
+      // The sessionDateTime already contains both date and time from the datetime-local input
+      // We just need to parse it correctly
+      console.log("Raw session date time value:", newSession.sessionDateTime);
 
-      // Prepare session data
-      const sessionData = {
-        mentor: { id: newSession.mentorId },
+      const sessionDateTime = new Date(newSession.sessionDateTime);
+
+      console.log("Parsed session date time:", sessionDateTime);
+
+      // Format the session data for API
+      const formattedSession = {
+        mentor: { id: parseInt(newSession.mentorId) },
+        sessionDateTime: sessionDateTime.toISOString(),
+        recordedDate: newSession.sessionDateTime.split("T")[0], // Just the date part
         sessionType: newSession.sessionType,
-        duration: `PT${newSession.duration}M`, // ISO-8601 format for minutes
-        hourlyRate: newSession.hourlyRate,
-        finalPayoutAmount: finalPayoutAmount,
-        sessionDateTime: new Date(newSession.sessionDateTime).toISOString(),
-        recordedDate: new Date().toISOString().split("T")[0],
-        status: "PENDING",
-        notes: newSession.notes || "",
+        duration: parseInt(newSession.duration),
+        hourlyRate: parseFloat(newSession.hourlyRate),
+        notes: newSession.notes,
+        status: "PENDING", // Default status for new sessions
       };
 
-      console.log("Creating new session:", sessionData);
+      console.log("Creating session with data:", formattedSession);
 
-      // Add a timestamp before making the request to track how recent this attempt is
-      const startTime = Date.now();
-
-      // First, test our authentication with a simple GET request
-      console.log("Testing authentication with a simple GET request...");
-      try {
-        await axios.get("/api/users");
-        console.log(
-          "Authentication test passed - we have permission to read users"
-        );
-      } catch (authTestError) {
-        console.error("Authentication test failed:", authTestError);
-        if (authTestError.response && authTestError.response.status === 401) {
-          setError(
-            "You don't have permission to perform this action. Please make sure you're logged in with an Admin account."
-          );
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Send POST request to create session
-      const response = await axios.post("/api/sessions", sessionData);
+      const response = await axios.post("/api/sessions", formattedSession);
       console.log("Session created successfully:", response.data);
 
-      // Close modal and reset form
-      setShowCreateModal(false);
+      setSuccess(true);
       setNewSession({
         mentorId: "",
         sessionType: "Online Teaching",
         duration: 60,
         hourlyRate: 1000,
-        sessionDateTime: new Date().toISOString().split("T")[0],
+        sessionDateTime: new Date().toISOString().slice(0, 16), // Format for datetime-local input
         notes: "",
       });
 
-      // Refresh sessions list WITHOUT page reload
-      try {
-        const sessionsResponse = await axios.get("/api/sessions");
-        // Update the parent component's sessions state
-        if (typeof onSessionsUpdated === "function") {
-          onSessionsUpdated(sessionsResponse.data);
-        } else {
-          console.log(
-            "Sessions updated, but no handler available to update UI"
-          );
-        }
+      // Update the sessions list immediately and refresh all data
+      const updatedSessions = await axios.get("/api/sessions");
+      onSessionsUpdated(updatedSessions.data.sessions || updatedSessions.data);
 
-        // Show success message
-        alert("Session created successfully!");
-      } catch (refreshErr) {
-        console.error("Error refreshing sessions:", refreshErr);
-        alert(
-          "Session created, but couldn't refresh the list. Please reload manually."
-        );
+      // Also refresh all data in the parent component
+      if (window.adminDashboardRefreshData) {
+        window.adminDashboardRefreshData();
       }
+
+      // Close the modal after successful creation
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setSuccess(false);
+      }, 1000);
     } catch (err) {
-      console.error(
-        "Error creating session:",
-        err.response?.data || err.message
+      console.error("Failed to create session:", err);
+      setError(
+        `Failed to create session: ${
+          err.response?.data?.message || err.message
+        }`
       );
-
-      // Check for specific permission issues
-      if (err.response?.status === 403) {
-        setError(
-          "You don't have permission to create sessions. This action requires Admin privileges."
-        );
-        setLoading(false);
-        return;
-      }
-
-      // If it's an authentication error, try to refresh token
-      if (
-        err.message === "Authentication error" ||
-        (err.response && err.response.status === 401)
-      ) {
-        try {
-          console.log(
-            "Session creation failed due to auth - attempting refresh"
-          );
-
-          // Check if we've already tried refreshing very recently (within 5 seconds)
-          // This prevents retry loops
-          const lastRefreshTime = parseInt(
-            localStorage.getItem("last_session_refresh") || "0"
-          );
-          const now = Date.now();
-
-          if (now - lastRefreshTime < 5000) {
-            console.log(
-              "Already attempted refresh recently, not retrying to avoid loop"
-            );
-            setError(
-              "Authentication failed. Please try logging out and back in as an Admin user."
-            );
-            return;
-          }
-
-          // Mark this refresh attempt
-          localStorage.setItem("last_session_refresh", now.toString());
-
-          const refreshSuccessful = await refreshAuth();
-
-          if (refreshSuccessful) {
-            console.log(
-              "Auth refreshed successfully, retrying session creation"
-            );
-            // Wait a moment to ensure token is propagated
-            setTimeout(() => {
-              // Clear the form error before retrying
-              setError("");
-              // Create a new event-like object for the retry
-              const retryEvent = { preventDefault: () => {} };
-              handleCreateSession(retryEvent);
-            }, 1000);
-            return;
-          } else {
-            setError(
-              "Authentication failed. Please log in again as an Admin user."
-            );
-          }
-        } catch (refreshErr) {
-          console.error("Failed to refresh authentication:", refreshErr);
-          setError("Session could not be created - authentication failed.");
-        }
-      } else {
-        // Not an auth error or refresh failed
-        setError(
-          `Failed to create session: ${
-            err.response?.data?.message || err.message
-          }`
-        );
-      }
     } finally {
       setLoading(false);
     }
@@ -1739,14 +1689,28 @@ function SessionsTab({
           ).toFixed(2);
 
           // Prepare session data
+          // Make sure we have a valid date for sessionDateTime
+          let sessionDateTime;
+          try {
+            sessionDateTime = new Date(rowData.sessionDateTime);
+            if (isNaN(sessionDateTime.getTime())) {
+              throw new Error("Invalid date");
+            }
+          } catch (dateErr) {
+            console.error(
+              `Row ${i} has invalid date format, using current date`
+            );
+            sessionDateTime = new Date();
+          }
+
           const sessionData = {
             mentor: { id: rowData.mentorId },
             sessionType: rowData.sessionType,
-            duration: `PT${parseInt(rowData.duration)}M`, // ISO-8601 format for minutes
+            duration: parseInt(rowData.duration),
             hourlyRate: parseFloat(rowData.hourlyRate),
             finalPayoutAmount: finalPayoutAmount,
-            sessionDateTime: new Date(rowData.sessionDateTime).toISOString(),
-            recordedDate: new Date().toISOString().split("T")[0],
+            sessionDateTime: sessionDateTime.toISOString(),
+            recordedDate: sessionDateTime.toISOString().split("T")[0],
             status: "PENDING",
             notes: rowData.notes || "",
           };
@@ -1755,8 +1719,15 @@ function SessionsTab({
           await axios.post("/api/sessions", sessionData);
         }
 
-        // Refresh sessions list
-        window.location.reload();
+        // Refresh sessions list without page reload
+        const updatedSessions = await axios.get("/api/sessions");
+        onSessionsUpdated(
+          updatedSessions.data.sessions || updatedSessions.data
+        );
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+        }, 2000);
       } catch (err) {
         console.error("Error importing CSV:", err);
         setError(`Failed to import CSV: ${err.message}`);
