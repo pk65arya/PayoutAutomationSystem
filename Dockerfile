@@ -14,4 +14,5 @@ COPY --from=builder /app/target/*.jar app.jar
 # Expose app port
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "target/payout-automation-0.0.1-SNAPSHOT.jar"]
+# Start the app
+ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
