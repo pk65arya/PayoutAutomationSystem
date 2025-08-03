@@ -1,11 +1,11 @@
-// Fallback Chart implementation for when CDN fails to load
+
 (function () {
   console.log("ReportsChartFallback.js: Loading fallback Chart implementation");
 
-  // Always implement the fallback since this file is only loaded when Chart.js fails
+ 
   console.warn("Chart.js not found, implementing fallback visualization");
 
-  // Simple Chart class that renders alternative visualizations
+  
   window.Chart = class FallbackChart {
     constructor(ctx, config) {
       console.log("FallbackChart: Creating fallback chart", config.type);
@@ -30,7 +30,6 @@
       const type = this.config.type;
       const data = this.config.data;
 
-      // Create a simple fallback visualization
       const fallbackDiv = document.createElement("div");
       fallbackDiv.className = "fallback-chart-container";
       fallbackDiv.style.width = "100%";
@@ -40,7 +39,7 @@
       fallbackDiv.style.alignItems = "center";
       fallbackDiv.style.justifyContent = "center";
 
-      // Create title
+     
       const title = document.createElement("h4");
       title.textContent = `${
         type.charAt(0).toUpperCase() + type.slice(1)
@@ -48,7 +47,7 @@
       title.style.margin = "0 0 10px 0";
       fallbackDiv.appendChild(title);
 
-      // Create data representation based on chart type
+      
       if (type === "bar" || type === "line") {
         this.createBarFallback(fallbackDiv, data);
       } else if (type === "pie" || type === "doughnut") {
@@ -59,7 +58,7 @@
         fallbackDiv.appendChild(message);
       }
 
-      // Replace canvas with our fallback
+    
       canvas.style.display = "none";
       container.appendChild(fallbackDiv);
     }
@@ -135,7 +134,7 @@
         table.style.width = "100%";
         table.style.borderCollapse = "collapse";
 
-        // Table header
+      
         const thead = document.createElement("thead");
         const headerRow = document.createElement("tr");
 
@@ -160,7 +159,7 @@
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
-        // Table body
+      
         const tbody = document.createElement("tbody");
 
         data.labels.forEach((label, i) => {
@@ -170,12 +169,12 @@
 
           const row = document.createElement("tr");
 
-          // Add color indicator
+        
           const colorCell = document.createElement("td");
           colorCell.style.width = "3px";
           colorCell.style.padding = "0";
 
-          // Get color from dataset if available
+        
           let color = "#ccc";
           if (dataset.backgroundColor) {
             if (Array.isArray(dataset.backgroundColor)) {
@@ -219,25 +218,25 @@
     }
 
     destroy() {
-      // Clean up any DOM elements we created
+    
       if (this.ctx && this.ctx.canvas) {
         const canvas = this.ctx.canvas;
         const container = canvas.parentNode;
 
-        // Find and remove our fallback div
+     
         if (container) {
           const fallbacks = container.querySelectorAll(
             ".fallback-chart-container"
           );
           fallbacks.forEach((el) => container.removeChild(el));
 
-          // Make the canvas visible again
+         
           canvas.style.display = "block";
         }
       }
     }
 
-    // Add compatibility with common Chart.js methods
+  
     update() {
       // No-op, since our fallback doesn't support updates
       console.log("FallbackChart: update called (no-op)");
@@ -245,16 +244,14 @@
     }
 
     resize() {
-      // No-op, since our fallback doesn't need resizing
+     
       console.log("FallbackChart: resize called (no-op)");
       return this;
     }
   };
-
-  // Make it available at window.ChartInstance as well for compatibility
   window.ChartInstance = window.Chart;
 
-  // Update global flag to indicate Chart is now available
+  
   window.ChartLoaded = true;
 
   console.log("Fallback Chart.js implementation loaded successfully");

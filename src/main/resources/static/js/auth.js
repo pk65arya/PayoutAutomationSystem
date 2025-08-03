@@ -1,4 +1,4 @@
-// Authentication component
+
 function Auth() {
   const [isLogin, setIsLogin] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
@@ -11,13 +11,10 @@ function Auth() {
   const [fullName, setFullName] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
 
-  // Check if there were previous failed authentication attempts
   React.useEffect(() => {
-    // Check if there was a previous authentication error
     const authError = localStorage.getItem("auth_error");
     if (authError) {
       setError(authError);
-      // Clear the error after displaying it
       localStorage.removeItem("auth_error");
     }
 
@@ -34,18 +31,14 @@ function Auth() {
     }
   }, []);
 
-  // Function to fix potential token format issues
   function ensureCorrectTokenFormat(token) {
     if (!token) return null;
 
-    // If token already has Bearer prefix, return as is
     if (token.startsWith("Bearer ")) return token;
 
-    // Otherwise add the prefix
     return `Bearer ${token}`;
   }
 
-  // Login form submit handler
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -65,28 +58,24 @@ function Auth() {
         password,
       });
 
-      // Clear any existing tokens to ensure clean state
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
       console.log("Login response:", response.data);
 
       if (response.data.token) {
-        // Store token WITHOUT the Bearer prefix - it will be added by the interceptor
         const tokenToStore = response.data.token.startsWith("Bearer ")
           ? response.data.token.substring(7)
           : response.data.token;
 
         localStorage.setItem("token", tokenToStore);
 
-        // Set timestamp for token creation
         localStorage.setItem("auth_timestamp", Date.now().toString());
 
         // Log token details for debugging
         console.log("Token stored successfully, length:", tokenToStore.length);
         console.log("Token first 10 chars:", tokenToStore.substring(0, 10));
 
-        // Prepare user data - make sure roles are preserved exactly as received
         const userData = {
           id: response.data.id,
           username: response.data.username,
@@ -97,10 +86,8 @@ function Auth() {
 
         console.log("User roles:", userData.roles);
 
-        // Store user data as a string
         localStorage.setItem("user", JSON.stringify(userData));
 
-        // Call login handler from context
         login(tokenToStore, userData);
       } else {
         setError("Login successful but no token received");
@@ -117,14 +104,12 @@ function Auth() {
     }
   };
 
-  // Registration form submit handler
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     setSuccess("");
 
-    // Basic form validation
     if (password.length < 6) {
       setError("Password must be at least 6 characters long");
       setLoading(false);
@@ -142,18 +127,15 @@ function Auth() {
 
       console.log("Registration successful:", response.data);
 
-      // Show success message and switch to login
       setSuccess(
         response.data.message || "Registration successful! Please login."
       );
 
-      // Clear form fields but stay on register page
       setUsername("");
       setPassword("");
       setEmail("");
       setFullName("");
 
-      // After 2 seconds, switch to login
       setTimeout(() => {
         setIsLogin(true);
       }, 2000);

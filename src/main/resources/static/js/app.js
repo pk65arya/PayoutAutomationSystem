@@ -1,26 +1,20 @@
-// AuthContext for managing auth state across components
 const AuthContext = React.createContext();
 
-// API base URL
 const API_URL = window.location.origin;
 
-// Set up axios defaults
 axios.defaults.baseURL = API_URL;
 axios.defaults.headers.common["Content-Type"] = "application/json";
 
-// Axios interceptor for handling auth token
 axios.interceptors.request.use(
   (config) => {
-    // Check if we have a token
     const token = localStorage.getItem("token");
     if (token) {
-      // Always ensure the token has the Bearer prefix
       const formattedToken = token.startsWith("Bearer ")
         ? token
         : `Bearer ${token}`;
       config.headers["Authorization"] = formattedToken;
 
-      // Log token info but keep it partially hidden for security
+    
       const tokenPreview =
         token.length > 10 ? token.substring(0, 10) + "..." : token;
       console.log("Adding token to request:", `Bearer ${tokenPreview}`);
@@ -28,7 +22,7 @@ axios.interceptors.request.use(
       console.log("No auth token available for request");
     }
 
-    // Always set content type to JSON for POST requests
+   
     if (config.method === "post" || config.method === "put") {
       config.headers["Content-Type"] = "application/json";
     }
@@ -42,33 +36,33 @@ axios.interceptors.request.use(
   }
 );
 
-// Axios interceptor for handling errors
+
 axios.interceptors.response.use(
   (response) => {
-    // Log success responses
+    
     console.log("Axios response:", response.status, response.config.url);
     return response;
   },
   (error) => {
-    // Log error responses
+    
     console.error(
       "Axios response error:",
       error.response ? error.response.status : "No response",
       error.config ? error.config.url : "Unknown URL"
     );
 
-    // Don't handle auth errors automatically - let components handle them
+    
     return Promise.reject(error);
   }
 );
 
-// Main App component
+
 function App() {
   const [user, setUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [authError, setAuthError] = React.useState(null);
 
-  // Check if user is logged in on component mount
+ 
   React.useEffect(() => {
     const token = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
@@ -100,23 +94,23 @@ function App() {
     setLoading(false);
   }, []);
 
-  // Login function
+ 
   const login = (token, userData) => {
     console.log("Login function called with user:", userData.username);
 
-    // Make sure the token doesn't already have "Bearer " prefix
+   
     const tokenToStore = token.startsWith("Bearer ")
       ? token.substring(7)
       : token;
 
-    // Store token without the Bearer prefix
+   
     localStorage.setItem("token", tokenToStore);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
     setAuthError(null);
   };
 
-  // Logout function
+ 
   const logout = () => {
     console.log("Logout function called");
     localStorage.removeItem("token");
@@ -124,7 +118,6 @@ function App() {
     setUser(null);
   };
 
-  // Auth provider value
   const authContextValue = {
     user,
     login,
@@ -169,7 +162,6 @@ function App() {
   );
 }
 
-// Dashboard component that shows admin or mentor dashboard based on role
 function Dashboard() {
   const { user, logout, isAdmin } = React.useContext(AuthContext);
 
@@ -254,5 +246,4 @@ function Dashboard() {
   );
 }
 
-// Render the App component
 ReactDOM.render(<App />, document.getElementById("root"));
